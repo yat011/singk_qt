@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include "onlinedialog.h"
 #include "videocontroller.h"
 #include <QStandardItemModel>
 #include <QMap>
@@ -35,13 +36,20 @@ private slots:
     void on_timeSlider_sliderPressed();
 
     void on_addBtn_clicked();
+    void on_actionOnline_triggered();
 
+
+public slots:
+    void showOnlineDialog();
+    void hostClicked();
+    void clientClicked();
 
 private:
     Ui::MainWindow *ui;
     VideoController * video;
     QStandardItemModel * model;
     QMap <int,QStandardItem*>  itemMap;
+     OnlineDialog *dialog=0 ;
 };
 
 #endif // MAINWINDOW_H

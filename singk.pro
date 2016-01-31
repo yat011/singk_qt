@@ -16,14 +16,19 @@ SOURCES += main.cpp\
         mainwindow.cpp \
     jstoqtapi.cpp \
     videocontroller.cpp \
-    networkcontroller.cpp
+    networkcontroller.cpp \
+    clienthandler.cpp \
+    onlinedialog.cpp
 
 HEADERS  += mainwindow.h \
     jstoqtapi.h \
     videocontroller.h \
-    networkcontroller.h
+    networkcontroller.h \
+    clienthandler.h \
+    onlinedialog.h
 
-FORMS    += mainwindow.ui
+FORMS    += mainwindow.ui \
+    onlinedialog.ui
 
 DISTFILES += \
     tmpl.html

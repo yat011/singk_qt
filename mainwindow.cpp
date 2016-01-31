@@ -75,6 +75,15 @@ void MainWindow::on_addBtn_clicked()
 {
     video->addVideo(ui->linkEdit->text().trimmed());
 }
+
+void MainWindow::showOnlineDialog()
+{
+    if (this->dialog == 0){
+        dialog = new OnlineDialog(this);
+
+    }
+    dialog->show();
+}
 void MainWindow::videoAdded(int id,QString title){
     qDebug() << id << " " << title;
     CustomQItem* item = new CustomQItem(id,title);
@@ -99,4 +108,23 @@ void MainWindow::videoOnPlay(int id, QString title)
         delete item;
     }
     ui->currentVideoDisplay->setText(title);
+}
+
+void MainWindow::on_actionOnline_triggered()
+{
+    showOnlineDialog();
+}
+
+void MainWindow::hostClicked()
+{
+    qDebug() << dialog->getPortValue();
+    video->netController->startServer(dialog->getPortValue().toInt());
+    dialog->hide();
+}
+
+void MainWindow::clientClicked()
+{
+    qDebug() << "try connect";
+    video->netController->connectToHost(dialog->getHostValue(),dialog->getPortValue().toInt());
+    dialog->hide();
 }
