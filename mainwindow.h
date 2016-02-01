@@ -18,7 +18,7 @@ class MainWindow : public QMainWindow
 public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
-
+   VideoController * video;
 private slots:
     void on_playBtn_clicked();
     void onLoaded(double Duration);
@@ -46,7 +46,7 @@ public slots:
 
 private:
     Ui::MainWindow *ui;
-    VideoController * video;
+
     QStandardItemModel * model;
     QMap <int,QStandardItem*>  itemMap;
      OnlineDialog *dialog=0 ;

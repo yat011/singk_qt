@@ -56,7 +56,12 @@ void NetworkController::newConnection()
 {
 
         qDebug() << "new connection";
+        QTcpSocket *socket = server->nextPendingConnection();
+        clients.insert(socket->socketDescriptor(),socket);
+        QString msg = "welcome";
+        socket->write(msg.toStdString().c_str(),msg.length());
         // Every new connection will be run in a newly created thread
+        /*
         ClientHandler*thread = new ClientHandler(clientId++, server->nextPendingConnection());
 
         // connect signal/slot
@@ -64,6 +69,7 @@ void NetworkController::newConnection()
         connect(thread, SIGNAL(finished()), thread, SLOT(deleteLater()));
 
         thread->start();
+        */
 }
 
 void NetworkController::clientRead()

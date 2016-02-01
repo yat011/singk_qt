@@ -18,14 +18,18 @@ SOURCES += main.cpp\
     videocontroller.cpp \
     networkcontroller.cpp \
     clienthandler.cpp \
-    onlinedialog.cpp
+    onlinedialog.cpp \
+    serializableobject.cpp \
+    message.cpp
 
 HEADERS  += mainwindow.h \
     jstoqtapi.h \
     videocontroller.h \
     networkcontroller.h \
     clienthandler.h \
-    onlinedialog.h
+    onlinedialog.h \
+    serializableobject.h \
+    message.h
 
 FORMS    += mainwindow.ui \
     onlinedialog.ui

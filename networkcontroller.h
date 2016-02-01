@@ -15,7 +15,7 @@ private:
     QTcpSocket * cSocket;
     int clientId = 0;
     QMap<int, QTcpSocket* >clients;
-    QMutex mutex;
+
     void addClient(int id, QTcpSocket);
     void removeClient(int id);
     void sendToAllClients(QString str);
