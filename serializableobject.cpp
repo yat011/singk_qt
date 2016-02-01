@@ -1,5 +1,5 @@
 #include "serializableobject.h"
-
+#include <QDebug>
 #include <QDataStream>
 
 SerializableObject::SerializableObject(QObject *parent) : QObject(parent)
@@ -13,6 +13,7 @@ QDataStream &operator<<(QDataStream &ds, const SerializableObject &obj)
        {
            if(obj.metaObject()->property(i).isStored(&obj))
            {
+               qDebug()<< obj.metaObject()->property(i).read(&obj);
                ds << obj.metaObject()->property(i).read(&obj);
            }
        }

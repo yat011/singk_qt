@@ -7,6 +7,7 @@
 #include <QDebug>
 #include <QPair>
 #include <QList>
+#include <QMap>
 #include "jstoqtapi.h"
 #include "networkcontroller.h"
 class VideoController : public QObject
@@ -38,7 +39,7 @@ public:
     NetworkController * netController;
     bool loaded = false;
     double duration = 0;
-    QMap<int, QPair<QString,QString>> links;
+    QMap<int, QPair<QString,QString> > links;
     explicit VideoController(QWebView * view, QObject *parent = 0);
     void play();
     void pause();
