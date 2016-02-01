@@ -10,11 +10,11 @@
 
 class CustomQItem : public  QStandardItem{
 private :
-    int id  ;
+
 public :
     CustomQItem(int id, QString t):QStandardItem(t),id(id){
     }
-
+    int id  ;
 };
 
 
@@ -24,7 +24,7 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    video = new VideoController(ui->webView,0);
+    video = new VideoController(ui->webView,this);
     connect(video->api,SIGNAL(loaded(double)),this,SLOT(onLoaded(double)));
     connect(video->api,SIGNAL(timeChanged(double)),this,SLOT(setTime(double)));
     connect(video,SIGNAL(videoAdded(int,QString)),this,SLOT(videoAdded(int,QString)));
@@ -52,6 +52,7 @@ void  MainWindow::onLoaded(double Duration){
     ui->timeSlider->setValue(0);
 }
  void MainWindow::setTime(double time){
+
     ui->timeSlider->setValue(time*10);
  }
 
@@ -73,6 +74,14 @@ void MainWindow::on_timeSlider_sliderPressed()
 
 void MainWindow::on_addBtn_clicked()
 {
+    if (ui->linkEdit->text().trimmed()=="c"){
+       video->netController->connectToHost("localhost",1234);
+        return;
+    }else if (ui->linkEdit->text().trimmed()=="s"){
+        video->netController->startServer(1234);
+        return;
+    }
+
     video->addVideo(ui->linkEdit->text().trimmed());
 }
 
@@ -98,14 +107,16 @@ void MainWindow::videoAdded(int id,QString title){
 void MainWindow::videoOnPlay(int id, QString title)
 {
     // some checking
-    QMap<int,QStandardItem*>::iterator itr =  itemMap.find(id);
-    if (itr!=itemMap.end()){
+
+    if (itemMap.contains(id)){
         qDebug() << "move from list";
-        CustomQItem * item = dynamic_cast<CustomQItem*>(itr.value());
-        qDebug() << item;
+
+        CustomQItem * item = dynamic_cast<CustomQItem*>(itemMap[id]);
+
         model->removeRow(item->row());
+
         itemMap.remove(id);
-        delete item;
+
     }
     ui->currentVideoDisplay->setText(title);
 }
@@ -127,4 +138,16 @@ void MainWindow::clientClicked()
     qDebug() << "try connect";
     video->netController->connectToHost(dialog->getHostValue(),dialog->getPortValue().toInt());
     dialog->hide();
+}
+
+void MainWindow::test()
+{
+    video->netController->startServer(1234);
+    MainWindow * w2 = new MainWindow(this);
+    w2->show();
+    //w2->show();
+   // w2->video->netController->connectToHost("localhost",1234);
+   // MainWindow * w3 = new MainWindow();
+    //w3->show();
+   // w3->video->netController->connectToHost("localhost",1234);
 }

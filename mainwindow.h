@@ -19,6 +19,8 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
    VideoController * video;
+
+
 private slots:
     void on_playBtn_clicked();
     void onLoaded(double Duration);
@@ -43,6 +45,7 @@ public slots:
     void showOnlineDialog();
     void hostClicked();
     void clientClicked();
+    void test();
 
 private:
     Ui::MainWindow *ui;

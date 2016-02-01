@@ -1,5 +1,16 @@
 #include "networkcontroller.h"
 #include "clienthandler.h"
+#include "message.h"
+
+int NetworkController::getClientId() const
+{
+    return clientId;
+}
+
+void NetworkController::setClientId(int value)
+{
+    clientId = value;
+}
 
 void NetworkController::addClient(int id, QTcpSocket)
 {
@@ -27,7 +38,7 @@ void NetworkController::startServer(int port)
     online= true;
     server = new QTcpServer();
     if(!server->listen(QHostAddress::Any, port))
-        {
+     {
             qDebug() << "Could not start server";
         }
         else
@@ -35,21 +46,13 @@ void NetworkController::startServer(int port)
             qDebug() << "Listening to port " << port << "...";
            connect(server,SIGNAL(newConnection()),this, SLOT(newConnection()));
 
+           host = true;
+           online =true;
+
     }
 }
 
-void NetworkController::connectToHost(QString address, int port)
-{
-    cSocket = new QTcpSocket(this);
-    cSocket->connectToHost(address,port);
-    connect(cSocket, SIGNAL(connected()),this,SLOT(connectedToHost()));
-}
 
-void NetworkController::connectedToHost()
-{
-    qDebug() << "connected to Host";
-    connect(cSocket, SIGNAL(readyRead()),this,SLOT(clientRead()));
-}
 
 
 void NetworkController::newConnection()
@@ -57,28 +60,92 @@ void NetworkController::newConnection()
 
         qDebug() << "new connection";
         QTcpSocket *socket = server->nextPendingConnection();
+        connect(socket,SIGNAL(disconnected()),this,SLOT(clientDisconnected()));
+        connect(socket,SIGNAL(readyRead()),this,SLOT(hostRead()));
         clients.insert(socket->socketDescriptor(),socket);
-        QString msg = "welcome";
-        socket->write(msg.toStdString().c_str(),msg.length());
-        // Every new connection will be run in a newly created thread
-        /*
-        ClientHandler*thread = new ClientHandler(clientId++, server->nextPendingConnection());
+        //welcome msg
+        Message msg;
+        msg.setType(HELLO);
+        msg.setClientId(socket->socketDescriptor());
+        emit newClientConnected(msg);
+        QByteArray arr;
+        QDataStream out (&arr, QIODevice::WriteOnly);
+        out << msg;
 
-        // connect signal/slot
-        // once a thread is not needed, it will be beleted later
-        connect(thread, SIGNAL(finished()), thread, SLOT(deleteLater()));
+        socket->write(arr);
 
-        thread->start();
-        */
+
+
+}
+
+void NetworkController::hostRead(){
+    QTcpSocket * socket = (QTcpSocket*) sender();
+     QDataStream in(socket->readAll());
+     Message msg ;
+     in >> msg;
+     qDebug() << "host receive msg";
+     emit messageComeIn(msg);
+}
+
+void NetworkController::clientDisconnected()
+{
+        QTcpSocket * socket = (QTcpSocket*) sender();
+
+    qDebug() << "client " << socket->socketDescriptor() << " disconnected";
+    clients.remove(socket->socketDescriptor());
 }
 
 void NetworkController::clientRead()
 {
-    QString msg = QString(cSocket->readAll());
-    qDebug() << "client read:" << msg;
+
+     QDataStream in(cSocket->readAll());
+     Message msg ;
+     in >> msg;
+
+     if (msg.getType() == HELLO){
+        qDebug() << "client Id" << msg.getClientId() << " come";
+        clientId = msg.getClientId();
+        emit messageComeIn(msg);
+     }else{
+         qDebug() << "client" << clientId << " receive msg";
+         emit messageComeIn(msg);
+     }
+
 }
 
 void NetworkController::clientSend(QString str)
 {
 
+}
+void NetworkController::connectToHost(QString address, int port)
+{
+    cSocket = new QTcpSocket(this);
+    cSocket->connectToHost(address,port);
+    connect(cSocket, SIGNAL(connected()),this,SLOT(connectedToHost()));
+}
+
+void NetworkController::broadcastToClients(const Message &msg)
+{
+   for (QTcpSocket* socket: clients.values()) {
+        QByteArray arr;
+        QDataStream out (&arr, QIODevice::WriteOnly);
+        out << msg;
+        socket->write(arr);
+   }
+}
+
+void NetworkController::sendToHost(const Message &msg)
+{
+       QByteArray arr;
+        QDataStream out (&arr, QIODevice::WriteOnly);
+        out << msg;
+        cSocket->write(arr);
+}
+
+void NetworkController::connectedToHost() //client
+{
+    qDebug() << "connected to Host";
+    online= true;
+    host =false;
+    connect(cSocket, SIGNAL(readyRead()),this,SLOT(clientRead()));
 }

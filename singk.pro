@@ -20,7 +20,8 @@ SOURCES += main.cpp\
     clienthandler.cpp \
     onlinedialog.cpp \
     serializableobject.cpp \
-    message.cpp
+    message.cpp \
+    user.cpp
 
 HEADERS  += mainwindow.h \
     jstoqtapi.h \
@@ -29,7 +30,9 @@ HEADERS  += mainwindow.h \
     clienthandler.h \
     onlinedialog.h \
     serializableobject.h \
-    message.h
+    message.h \
+    definition.h \
+    user.h
 
 FORMS    += mainwindow.ui \
     onlinedialog.ui

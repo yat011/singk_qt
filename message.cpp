@@ -1,26 +1,64 @@
 #include "message.h"
 
-Message::Message():SerializableObject()
+int Message::getSeq() const
 {
+    return seq;
+}
 
+void Message::setSeq(int value)
+{
+    seq = value;
 }
 
 QMap<int, QPair<QString, QString> > Message::getLinks() const
 {
+    QMap<int, QPair<QString, QString>> res;
+    for(QString e : links.keys()){
+        res[e.toInt()] =links[e].value<QPair<QString, QString>>() ;
+    }
+    return res;
+}
+
+Message::Message():SerializableObject()
+{
+    
+}
+
+int Message::getCurrentState() const
+{
+    return currentState;
+}
+
+void Message::setCurrentState(int value)
+{
+    currentState = value;
+}
+
+QMap<QString, QVariant> Message::getVariantLinks() const
+{
     return links;
 }
 
-void Message::setLinks(const QMap<int, QPair<QString, QString> > &value)
+void Message::setVariantLinks(const QMap<QString, QVariant> &value)
 {
     links = value;
 }
 
-int Message::getTimeAt() const
+void Message::setLinks(const QMap<int, QPair<QString, QString> > &value)
+{
+    links = QMap<QString,QVariant>();
+    for(int e : value.keys()){
+        links[QString::number(e)] = QVariant::fromValue(value[e]);
+    }
+}
+
+
+double Message::getTimeAt() const
 {
     return timeAt;
 }
 
-void Message::setTimeAt(int value)
+void Message::setTimeAt(double value)
 {
     timeAt = value;
 }
@@ -54,3 +92,4 @@ void Message::setType(int value)
 {
     type = value;
 }
+

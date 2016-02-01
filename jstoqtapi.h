@@ -10,14 +10,15 @@ class JsToQtApi : public QObject
 public:
     explicit JsToQtApi(QObject *parent = 0);
    Q_INVOKABLE void debug(QString str){
-        qDebug() << "debug";
-        qDebug() << str;
+        qDebug() << "js: " << str;
+
     }
 
 
 signals:
     void timeChanged(double time);
     void loaded(double duration);
+     void playerLoaded();
     void ended();
     void youtubeApiReady();
 public slots:

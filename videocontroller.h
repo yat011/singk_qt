@@ -10,6 +10,7 @@
 #include <QMap>
 #include "jstoqtapi.h"
 #include "networkcontroller.h"
+#include "definition.h"
 class VideoController : public QObject
 {
     Q_OBJECT
@@ -24,20 +25,32 @@ private:
     QString tempBuffer;
     QString url="";
     void titleReturned(QString title);
-
+    void clientInit(Message &msg);
+    double currentTime =0;
 
 
  //---------
     int vid = 0;
     int currentId =-1;
-    bool playing = false;
+    int state = PAUSE;
     void getTitle(QString url);
     void setCurrentVideo(int id);
+
+    void _play();
+    void _pause();
+    void _seekTo(double sec);
+
+    void suggestPlay();
+   //---online
+    int currentSeq = 0;
+    int onlineStatus = IDLE;
+    int waitingCount =0;
+    int nextCommand = 0;
 public:
 
     JsToQtApi * api;
     NetworkController * netController;
-    bool loaded = false;
+    bool playerLoaded = false;
     double duration = 0;
     QMap<int, QPair<QString,QString> > links;
     explicit VideoController(QWebView * view, QObject *parent = 0);
@@ -46,6 +59,7 @@ public:
     void seekTo(double sec);
     void loadVideo(int id);
     void addVideo(QString url);
+    void updateTime();
 
 
 
@@ -53,16 +67,18 @@ public:
 signals:
     void videoAdded(int vid,QString title);
     void videoOnPlay(int vid,QString title);
+    void resetPlayList();
 
 private slots:
      void attachWindowObject();
      void replyReady();
      void replyFinished();
      void videoEnded();
-
+    void parseMessage(Message &msg);
     void displayValue(double value);
     void onLoaded(double duration);
     void youtubeApiReady();
+    void helloClient(Message & msg);
 
 };
 

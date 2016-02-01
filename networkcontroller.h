@@ -1,6 +1,8 @@
 #ifndef NETWORKCONTROLLER_H
 #define NETWORKCONTROLLER_H
 
+#include "message.h"
+
 #include <QObject>
 #include <QTcpServer>
 #include <QTcpSocket>
@@ -13,13 +15,13 @@ private:
     bool online = false;
     QTcpServer * server ;
     QTcpSocket * cSocket;
-    int clientId = 0;
-    QMap<int, QTcpSocket* >clients;
 
+    int clientId = 0;
     void addClient(int id, QTcpSocket);
     void removeClient(int id);
     void sendToAllClients(QString str);
 public:
+    QMap<int, QTcpSocket* >clients;
     explicit NetworkController(QObject *parent = 0);
     bool isHost(){
         return host;
@@ -28,13 +30,25 @@ public:
     void startServer(int port);
     void connectToHost(QString address, int port);
 
-signals:
+    void broadcastToClients(const Message &msg);
+    void sendToHost(const Message &msg);
 
+    int getClientId() const;
+    void setClientId(int value);
+
+
+signals:
+    void newClientConnected(Message &msg);
+    void messageComeIn(Message &msg);
 private slots:
-    void connectedToHost();
+    //----server
     void newConnection();
+    void clientDisconnected();
+    //client----
+    void connectedToHost();
     void clientRead();
     void clientSend(QString str);
+    void hostRead();
 };
 
 #endif // NETWORKCONTROLLER_H

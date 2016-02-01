@@ -3,6 +3,7 @@
 #include <QDebug>
 #include <QNetworkReply>
 #include "jstoqtapi.h"
+#include "message.h"
 #include <QRegExp>
 #include <iostream>
 VideoController::VideoController(QWebView * view,QObject *parent) : QObject(parent),webView(view)
@@ -13,31 +14,36 @@ VideoController::VideoController(QWebView * view,QObject *parent) : QObject(pare
 
     }
     QString str = file.readAll();
-   //qDebug() << str;
+
 
     webView->setHtml(str);
-     frame= webView->page()->mainFrame();
+    frame= webView->page()->mainFrame();
     api = new JsToQtApi();
     connect(frame,
-                SIGNAL(javaScriptWindowObjectCleared()),
+            SIGNAL(javaScriptWindowObjectCleared()),
             this, SLOT(attachWindowObject()));
     connect(api,
-                SIGNAL(timeChanged(double)),
+            SIGNAL(timeChanged(double)),
             this, SLOT(displayValue(double)));
     connect(api,
-                SIGNAL(loaded(double)),
+            SIGNAL(loaded(double)),
             this, SLOT(onLoaded(double)));
     connect(api,
-                SIGNAL(youtubeApiReady()),
+            SIGNAL(youtubeApiReady()),
             this, SLOT(youtubeApiReady()));
     connect(api,
-                SIGNAL(ended()),
+            SIGNAL(ended()),
             this, SLOT(videoEnded()));
     netController = new NetworkController();
+    //network
+    connect(netController,SIGNAL(newClientConnected(Message&)),this,SLOT(helloClient(Message&)));
+    connect(netController,SIGNAL(messageComeIn(Message&)),this,SLOT(parseMessage(Message&)));
+
 
 }
 void VideoController::attachWindowObject()
 {
+    qDebug() << "attach";
     frame->addToJavaScriptWindowObject(QString("api"), api);
 }
 
@@ -60,8 +66,8 @@ void VideoController::replyFinished()
         this->titleReturned(exp.capturedTexts()[1]);
     }else{
         //error
-         qDebug()<< "title error";
-         this->httpBusy =false;
+        qDebug()<< "title error";
+        this->httpBusy =false;
     }
 
     reply->deleteLater();
@@ -73,21 +79,82 @@ void VideoController::videoEnded()
     links.remove(currentId);
 
     if (links.size() >0){
-         loadVideo(links.begin().key());
+        loadVideo(links.begin().key());
 
     }else{
         currentId =-1;
     }
 }
 
+void VideoController::parseMessage(Message &msg)
+{
+    if (!netController->isHost()){
+        Message reply;
+        switch(msg.getType()){
+        case HELLO:
+            clientInit(msg);
+            break;
+        case PRE_PLAY:
+        qDebug()<<"client: "<< currentSeq << " " << msg.getSeq();
+        if (currentSeq < msg.getSeq()){
+            qDebug()<<"client: pre play";
+            currentSeq = msg.getSeq();
+            reply.setClientId(netController->getClientId());
+            reply.setSeq(currentSeq);
+            reply.setType(OK);
+            netController->sendToHost(reply);
+        }
+
+            break;
+        case PLAY:
+        if (currentSeq < msg.getSeq()){
+            qDebug() << "client play";
+            currentSeq = msg.getSeq();
+            _play();
+        }
+
+            break;
+        default:
+            break;
+        }
+    }else{
+        switch(msg.getType()){
+        case OK:
+             qDebug() << "OK";
+            if (onlineStatus == WAITING && msg.getSeq()==currentSeq){
+                if ((--waitingCount)==0){
+                    qDebug() << "play";
+                    Message reply;
+                    reply.setSeq(++currentSeq);
+                    reply.setType(nextCommand);
+                    reply.setTimeAt(currentTime);
+                    reply.setCurrentState(state);
+                    netController->broadcastToClients(reply);
+                    if (nextCommand == PLAY){
+                        _play();
+                        onlineStatus=IDLE;
+                    }
+
+                }
+            }
+            break;
+        default:
+            break;
+        }
+
+    }
+}
+
 void VideoController::displayValue(double value){
+    currentTime = value;
 
 }
 
 void VideoController::onLoaded(double duration){
-    loaded = true;
+
+    playerLoaded = true;
     this->duration = duration;
-    if (playing){
+    if (state== PLAYING){
         play();
     }
     qDebug()<< duration;
@@ -98,25 +165,17 @@ void VideoController::youtubeApiReady(){
     webReady =true;
 }
 
-void VideoController::play(){
-    if (loaded){
-        frame->evaluateJavaScript("playVideo()");
-        playing =true;
-    }
+void VideoController::helloClient(Message &msg)
+{
+    msg.setLinks(links);
+    msg.setCurrentId(currentId);
+    msg.setTimeAt(currentTime);
+    msg.setCurrentState(state);
+    msg.setSeq(currentSeq);
+
 }
-void VideoController::pause(){
-    if (loaded){
-        frame->evaluateJavaScript("pauseVideo()");
-         playing =false;
-    }
-}
-void VideoController::seekTo(double sec){
-    if (loaded){
-        qDebug()<<sec;
-        frame->evaluateJavaScript(QString("seekTo(%1)").arg(sec));
-        playing = false;
-    }
-}
+
+
 
 void VideoController::loadVideo(int id)
 {
@@ -132,13 +191,20 @@ void VideoController::addVideo(QString url){
     }
     getTitle(url);
 }
+
+void VideoController::updateTime()
+{
+    qDebug()<<"updateTime";
+    frame->evaluateJavaScript("getCurrentTime()");
+
+}
 void VideoController::titleReturned(QString title)
 {
     QPair<QString,QString> * ptr= new QPair<QString,QString>(title,url);
     this->links.insert(vid++,*ptr);
     if (currentId == -1){//--if no video--
         qDebug() << "no video";
-         loadVideo(vid-1);
+        loadVideo(vid-1);
     }else{
         qDebug() << "add to list";
         emit videoAdded(vid-1, title);
@@ -147,6 +213,32 @@ void VideoController::titleReturned(QString title)
 
     this->httpBusy =false;
 
+
+}
+
+void VideoController::clientInit(Message &msg)//just connected to server--- init
+{
+
+    emit resetPlayList();
+    currentSeq = msg.getSeq();
+    links = msg.getLinks();
+    qDebug() << "init" << links.count();
+    if (links.count() >0){
+        currentId = msg.getCurrentId();
+        if (currentId!=-1){
+            qDebug()<<"load video ";
+            loadVideo(currentId);
+            seekTo(msg.timeAt);
+        }
+        for (int vid : links.keys()){
+            if (vid == currentId){
+                continue;
+            }
+            emit videoAdded(vid,links[vid].first);
+        }
+
+
+    }
 
 }
 
@@ -169,3 +261,91 @@ void VideoController::setCurrentVideo(int id)
     emit videoOnPlay(id, links.find(id).value().first);
 }
 
+void VideoController::_play()
+{
+    if (playerLoaded){
+        frame->evaluateJavaScript("playVideo()");
+        state=PLAYING;
+    }
+}
+
+void VideoController::_pause()
+{
+    if (playerLoaded){
+        frame->evaluateJavaScript("pauseVideo()");
+        state=PAUSE;
+    }
+}
+
+void VideoController::_seekTo(double sec)
+{
+    if (playerLoaded){
+        qDebug()<<sec;
+        frame->evaluateJavaScript(QString("seekTo(%1)").arg(sec));
+        state=PAUSE;
+    }
+}
+
+void VideoController::suggestPlay()
+{
+    if (state==PLAYING){
+        return;
+    }
+    if (netController->isHost()){//pre play
+        if (netController->clients.count()==0){
+            _play();
+            return;
+        }
+        qDebug()<<"pre play";
+        Message msg;
+        msg.setSeq(++currentSeq);
+        msg.setCurrentId(currentId);
+        msg.setType(PRE_PLAY);
+        updateTime();
+        msg.setTimeAt(currentTime);
+        msg.setCurrentState(state);
+        waitingCount = netController->clients.count();
+        onlineStatus = WAITING;
+        nextCommand=PLAY;
+        netController->broadcastToClients(msg);
+
+    }else{
+
+    }
+}
+void VideoController::play(){
+    if (netController->isOnline()) {
+
+     suggestPlay();
+    }else{
+        _play();
+    }
+
+
+}
+void VideoController::pause(){
+    if (netController->isOnline()) {
+        if (netController->isHost()){
+
+        }else{
+
+        }
+
+    }else{
+        _pause();
+    }
+
+}
+void VideoController::seekTo(double sec){
+    if (netController->isOnline()) {
+        if (netController->isHost()){
+
+        }else{
+
+        }
+
+    }else{
+        _seekTo(sec);
+    }
+
+}
