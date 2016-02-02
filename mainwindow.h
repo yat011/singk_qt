@@ -6,7 +6,8 @@
 #include "videocontroller.h"
 #include <QStandardItemModel>
 #include <QMap>
-
+#include <QVideoWidget>
+#include <QMediaPlayer>
 namespace Ui {
 class MainWindow;
 }
@@ -23,11 +24,15 @@ public:
 
 private slots:
     void on_playBtn_clicked();
-    void onLoaded(double Duration);
-    void setTime(double time);
+
+
     void videoAdded(int id,QString title);
     void videoOnPlay(int id,QString title);
 
+    //void  mediaStateChanged(QMediaPlayer::State state);
+    void positionChanged(qint64 pos);
+    void durationChanged(qint64 duration);
+  //  void  handlePlayerError();
 
     void on_pauseBtn_clicked();
 
@@ -49,7 +54,7 @@ public slots:
 
 private:
     Ui::MainWindow *ui;
-
+    QVideoWidget * videoWidget;
     QStandardItemModel * model;
     QMap <int,QStandardItem*>  itemMap;
      OnlineDialog *dialog=0 ;

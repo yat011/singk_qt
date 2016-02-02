@@ -2,22 +2,33 @@
 #include<QFile>
 #include <QDebug>
 #include <QNetworkReply>
+#include <QNetworkCookie>
 #include "jstoqtapi.h"
 #include "message.h"
 #include <QRegExp>
 #include <iostream>
-VideoController::VideoController(QWebView * view,QObject *parent) : QObject(parent),webView(view)
+#include <QDir>
+VideoController::VideoController(QVideoWidget *view, QObject *parent) : QObject(parent)
 {
+    videoWidget = view;
 
+    player.setMedia(QUrl(QDir::currentPath()+"/Jay Chou 周杰倫【最長的電影 The Longest Movie】-Official Music Video.mp4"));
+    player.setVideoOutput(view);
+
+    /*
     QFile file("C:\\Users\\at\\Documents\\qt\\singk\\tmpl.html");
     if (!file.open(QIODevice::ReadOnly)){
 
     }
     QString str = file.readAll();
+    downloader = new VideoDownloader();
 
+    //webView->setHtml(str);
 
-    webView->setHtml(str);
     frame= webView->page()->mainFrame();
+    //webView->setUrl(QUrl("https://www.youtube.com/watch?v=UppBiK8xpeg"));
+
+
     api = new JsToQtApi();
     connect(frame,
             SIGNAL(javaScriptWindowObjectCleared()),
@@ -34,6 +45,13 @@ VideoController::VideoController(QWebView * view,QObject *parent) : QObject(pare
     connect(api,
             SIGNAL(ended()),
             this, SLOT(videoEnded()));
+            */
+
+    downloader= new VideoDownloader();
+    connect(downloader,SIGNAL(finish(bool,QString)),this,SLOT(onDownloadFinish(bool,QString)));
+
+
+
     netController = new NetworkController();
     //network
     connect(netController,SIGNAL(newClientConnected(Message&)),this,SLOT(helloClient(Message&)));
@@ -197,16 +215,64 @@ void VideoController::heartBeat()
 void VideoController::loadVideo(int id)
 {
     setCurrentVideo(id);
-    QString arg = QString("loadVideo(\"%1\")").arg(links.find(id).value().second.toHtmlEscaped());
-    qDebug()<< arg;
-    frame->evaluateJavaScript(arg);
+   // QString arg = QString("loadVideo(\"%1\")").arg(links.find(id).value().second.toHtmlEscaped());
+   // qDebug()<< arg;
+   // frame->evaluateJavaScript(arg);
+    player.setMedia(QUrl(QDir::currentPath()+"/videos/"+links[id].first+".mp4"));
+    qDebug()<<"load";
 }
 void VideoController::addVideo(QString url){
-    if (httpBusy){
+    if (downloader->getBusy()){
         qDebug() << "busy";
         return;
     }
-    getTitle(url);
+    QString id = extractVid(url);
+    if (id ==""){
+        qDebug() << "invalid";
+        return;
+    }
+    this->url = url;
+    downloader->download(url);
+}
+void VideoController::onDownloadFinish(bool downloaded, QString title){
+
+    if (title != ""){
+        qDebug()<<"title "<<title;
+        if (downloaded){
+            qDebug()<<"added "<<title;
+            links[vid++] = QPair<QString,QString>(title,url);
+            if (currentId == -1){//--if no video--
+                qDebug() << "no video";
+                loadVideo(vid-1);
+            }else{
+                qDebug() << "add to list";
+                emit videoAdded(vid-1, title);
+            }
+        }else if (QFile::exists(QDir::currentPath() + "/videos/" + title + ".mp4")){
+            qDebug()<<"added "<<title;
+            links[vid++] = QPair<QString,QString>(title,url);
+            if (currentId == -1){//--if no video--
+                qDebug() << "no video";
+                loadVideo(vid-1);
+            }else{
+                qDebug() << "add to list";
+                emit videoAdded(vid-1, title);
+            }
+
+        }else{
+            //error
+        }
+    }else{
+        //error
+    }
+}
+
+QString VideoController::extractVid(QString url){
+    QRegExp exp("v=([^&]*)&?.*$",Qt::CaseInsensitive);
+    exp.indexIn(url);
+
+    qDebug() << exp.capturedTexts();
+    return exp.capturedTexts()[1];
 }
 
 void VideoController::updateTime()
@@ -290,27 +356,28 @@ void VideoController::setCurrentVideo(int id)
 
 void VideoController::_play()
 {
-    if (playerLoaded){
-        frame->evaluateJavaScript("playVideo()");
+
+    if (player.state()==player.PausedState||player.state()==player.StoppedState){
+        player.play();
         state=PLAYING;
     }
 }
 
 void VideoController::_pause()
 {
-    if (playerLoaded){
-        frame->evaluateJavaScript("pauseVideo()");
+    if (player.state()==player.PlayingState){
+        player.pause();
         state=PAUSE;
     }
 }
 
-void VideoController::_seekTo(double sec)
+void VideoController::_seekTo(qint64 pos)
 {
-    if (playerLoaded){
-        qDebug()<<sec;
-        frame->evaluateJavaScript(QString("seekTo(%1)").arg(sec));
+
+       player.setPosition(pos);
+
         state=PAUSE;
-    }
+
 }
 
 void VideoController::suggestPause(){
@@ -393,7 +460,7 @@ void VideoController::pause(){
     }
 
 }
-void VideoController::seekTo(double sec){
+void VideoController::seekTo(qint64 sec){
     if (netController->isOnline()) {
         if (netController->isHost()){
 

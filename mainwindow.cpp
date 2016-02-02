@@ -7,7 +7,7 @@
 #include <QFile>
 #include <QDebug>
 #include <QListView>
-
+#include <QStyle>
 class CustomQItem : public  QStandardItem{
 private :
 
@@ -23,19 +23,27 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    ui->playBtn->setIcon(style()->standardIcon(QStyle::SP_MediaPlay));
 
-    video = new VideoController(ui->webView,this);
+
+    /*
     connect(video->api,SIGNAL(loaded(double)),this,SLOT(onLoaded(double)));
     connect(video->api,SIGNAL(timeChanged(double)),this,SLOT(setTime(double)));
-    connect(video,SIGNAL(videoAdded(int,QString)),this,SLOT(videoAdded(int,QString)));
-    connect(video,SIGNAL(videoOnPlay(int,QString)),this, SLOT(videoOnPlay(int,QString)));
+    */
+
+
+    videoWidget = new QVideoWidget();
+    videoWidget->show();
+    ui->playerVerticalLayout->insertWidget(0,videoWidget);
+
+    video = new VideoController(videoWidget,this);
     model = new QStandardItemModel(this);
-
-
     ui->listView->setModel(model);
 
-
-
+    connect(video,SIGNAL(videoAdded(int,QString)),this,SLOT(videoAdded(int,QString)));
+    connect(video,SIGNAL(videoOnPlay(int,QString)),this, SLOT(videoOnPlay(int,QString)));
+    connect(&video->player,SIGNAL(durationChanged(qint64)),this,SLOT(durationChanged(qint64)));
+    connect(&video->player,SIGNAL(positionChanged(qint64)),this,SLOT(positionChanged(qint64)));
 }
 
 MainWindow::~MainWindow()
@@ -47,14 +55,7 @@ void MainWindow::on_playBtn_clicked()
 {
     video->play();
 }
-void  MainWindow::onLoaded(double Duration){
-    ui->timeSlider->setMaximum(Duration*10);
-    ui->timeSlider->setValue(0);
-}
- void MainWindow::setTime(double time){
 
-    ui->timeSlider->setValue(time*10);
- }
 
 void MainWindow::on_pauseBtn_clicked()
 {
@@ -64,7 +65,7 @@ void MainWindow::on_pauseBtn_clicked()
 
 void MainWindow::on_timeSlider_sliderReleased()
 {
-    video->seekTo(ui->timeSlider->value()/10.0);
+    video->seekTo(ui->timeSlider->value());
 }
 
 void MainWindow::on_timeSlider_sliderPressed()
@@ -118,7 +119,20 @@ void MainWindow::videoOnPlay(int id, QString title)
         itemMap.remove(id);
 
     }
+    qDebug() << "on play";
     ui->currentVideoDisplay->setText(title);
+}
+
+void MainWindow::positionChanged(qint64 pos)
+{
+    //qDebug()<<pos;
+    ui->timeSlider->setValue(pos);
+}
+
+void MainWindow::durationChanged(qint64 duration)
+{
+    qDebug()<<duration;
+    ui->timeSlider->setRange(0,duration);
 }
 
 void MainWindow::on_actionOnline_triggered()

@@ -9,16 +9,20 @@
 #include <QList>
 #include <QMap>
 #include <QTimer>
+#include <QMediaPlayer>
+#include <QVideoWidget>
+#include <QMediaPlayList>
 #include "jstoqtapi.h"
 #include "networkcontroller.h"
 #include "definition.h"
+#include "videodownloader.h"
 class VideoController : public QObject
 {
     Q_OBJECT
 private:
     QWebView * webView;
     QWebFrame * frame;
-
+    QVideoWidget * videoWidget;
     QNetworkAccessManager qnam;
     bool webReady = false;
     //get title
@@ -28,7 +32,9 @@ private:
     void titleReturned(QString title);
     void clientInit(Message &msg);
     double currentTime =0;
+    VideoDownloader * downloader;
 
+    QMediaPlaylist playlist;
 
  //---------
     int vid = 0;
@@ -39,7 +45,7 @@ private:
 
     void _play();
     void _pause();
-    void _seekTo(double sec);
+    void _seekTo(qint64 pos);
 
     void suggestPlay();
    //---online
@@ -53,17 +59,18 @@ private:
     const int beatInterval = 2000;
     const double maxDelay = 1;
     const double bufferTime = 2;
+    QString extractVid(QString url);
 public:
-
+    QMediaPlayer player;
     JsToQtApi * api;
     NetworkController * netController;
     bool playerLoaded = false;
     double duration = 0;
     QMap<int, QPair<QString,QString> > links;
-    explicit VideoController(QWebView * view, QObject *parent = 0);
+    explicit VideoController(QVideoWidget * view, QObject *parent = 0);
     void play();
     void pause();
-    void seekTo(double sec);
+    void seekTo(qint64 sec);
     void loadVideo(int id);
     void addVideo(QString url);
     void updateTime();
@@ -89,6 +96,7 @@ private slots:
     void helloClient(Message & msg);
     void heartBeat();
 
+    void onDownloadFinish(bool downloaded, QString title);
 };
 
 #endif // VIDEOCONTROLLER_H

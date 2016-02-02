@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui webkitwidgets network
+QT       += core gui webkitwidgets network  multimedia multimediawidgets
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -21,7 +21,9 @@ SOURCES += main.cpp\
     onlinedialog.cpp \
     serializableobject.cpp \
     message.cpp \
-    user.cpp
+    user.cpp \
+    videodownloader.cpp \
+    videoplayer.cpp
 
 HEADERS  += mainwindow.h \
     jstoqtapi.h \
@@ -32,7 +34,9 @@ HEADERS  += mainwindow.h \
     serializableobject.h \
     message.h \
     definition.h \
-    user.h
+    user.h \
+    videodownloader.h \
+    videoplayer.h
 
 FORMS    += mainwindow.ui \
     onlinedialog.ui
