@@ -8,6 +8,7 @@
 #include <QPair>
 #include <QList>
 #include <QMap>
+#include <QTimer>
 #include "jstoqtapi.h"
 #include "networkcontroller.h"
 #include "definition.h"
@@ -46,6 +47,10 @@ private:
     int onlineStatus = IDLE;
     int waitingCount =0;
     int nextCommand = 0;
+    QTimer onlineTimer;
+    void suggestPause();
+    void initMessage(Message &msg);
+    const int beatInterval = 2000;
 public:
 
     JsToQtApi * api;
@@ -70,6 +75,7 @@ signals:
     void resetPlayList();
 
 private slots:
+    void serverStarted();
      void attachWindowObject();
      void replyReady();
      void replyFinished();

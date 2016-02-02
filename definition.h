@@ -1,7 +1,6 @@
 #ifndef DEFINITION_H
 #define DEFINITION_H
-enum { HELLO=0, OK, PLAY, PRE_PLAY} ;
-enum { PLAYING=0, PAUSE, STOP} ;
+enum { HELLO=0, OK, PLAY, PRE_PLAY,PAUSE, PLAYING,STOP} ;
 enum{IDLE, WAITING};
 typedef QPair<QString, QString> MyPair;
 Q_DECLARE_METATYPE(MyPair);

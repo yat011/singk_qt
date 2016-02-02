@@ -9,7 +9,7 @@
 VideoController::VideoController(QWebView * view,QObject *parent) : QObject(parent),webView(view)
 {
 
-    QFile file("C:\\Users\\at\\Documents\\qt\\singk\\tmpl.html");
+    QFile file("tmpl.html");
     if (!file.open(QIODevice::ReadOnly)){
 
     }
@@ -38,6 +38,7 @@ VideoController::VideoController(QWebView * view,QObject *parent) : QObject(pare
     //network
     connect(netController,SIGNAL(newClientConnected(Message&)),this,SLOT(helloClient(Message&)));
     connect(netController,SIGNAL(messageComeIn(Message&)),this,SLOT(parseMessage(Message&)));
+    connect(netController,SIGNAL(serverStarted()),this,SLOT(serverStarted()));
 
 
 }
@@ -114,6 +115,13 @@ void VideoController::parseMessage(Message &msg)
         }
 
             break;
+        case PAUSE:
+            if (currentSeq<msg.getSeq()){
+                qDebug() << "client pause";
+                currentSeq = msg.getSeq();
+                _pause();
+            }
+        break;
         default:
             break;
         }
@@ -197,6 +205,12 @@ void VideoController::updateTime()
     qDebug()<<"updateTime";
     frame->evaluateJavaScript("getCurrentTime()");
 
+}
+
+void VideoController::serverStarted()
+{
+    qDebug() << "server started";
+    onlineTimer.setInterval(beatInterval);
 }
 void VideoController::titleReturned(QString title)
 {
@@ -284,6 +298,35 @@ void VideoController::_seekTo(double sec)
         frame->evaluateJavaScript(QString("seekTo(%1)").arg(sec));
         state=PAUSE;
     }
+}
+
+void VideoController::suggestPause(){
+    if (state==PAUSE){
+        return;
+    }
+    if (netController->isHost()){
+        if(netController->clients.count()==0){
+            _pause();
+            return;
+        }
+        qDebug()<<"host: pause";
+        Message msg;
+        initMessage(msg);
+        msg.setSeq(++currentSeq);
+        msg.setType(PAUSE);
+       netController->broadcastToClients(msg);
+       _pause();
+    }else{
+
+    }
+
+}
+
+void VideoController::initMessage(Message &msg)
+{
+      msg.setCurrentId(currentId);
+      msg.setTimeAt(currentTime);
+      msg.setCurrentState(state);
 }
 
 void VideoController::suggestPlay()

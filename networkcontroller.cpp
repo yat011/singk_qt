@@ -48,7 +48,7 @@ void NetworkController::startServer(int port)
 
            host = true;
            online =true;
-
+           emit serverStarted();
     }
 }
 

@@ -15,7 +15,7 @@ class Message : public SerializableObject
     Q_PROPERTY(int currentId READ getCurrentId WRITE setCurrentId)
     Q_PROPERTY(int type READ getType WRITE setType)
     Q_PROPERTY(int currentState READ getCurrentState WRITE setCurrentState)
-    Q_PROPERTY(QMap<QString, QVariant > links READ getVariantLinks WRITE setVariantLinks)
+    Q_PROPERTY(QVariantMap links READ getVariantLinks WRITE setVariantLinks)
 
 private:
     int seq = 0;
@@ -45,7 +45,7 @@ public:
     void setSeq(int value);
 
     QMap<QString, QVariant> getVariantLinks() const;
-    QMap<int, QPair<QString,QString>> getLinks() const;
+    QMap<int, QPair<QString,QString> > getLinks() const;
     void setVariantLinks(const QMap<QString, QVariant> &value);
     void setLinks(const QMap<int, QPair<QString,QString> > &value);
     int getCurrentState() const;

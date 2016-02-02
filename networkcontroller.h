@@ -39,6 +39,7 @@ public:
 
 signals:
     void newClientConnected(Message &msg);
+    void serverStarted();
     void messageComeIn(Message &msg);
 private slots:
     //----server

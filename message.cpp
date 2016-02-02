@@ -12,9 +12,9 @@ void Message::setSeq(int value)
 
 QMap<int, QPair<QString, QString> > Message::getLinks() const
 {
-    QMap<int, QPair<QString, QString>> res;
+    QMap<int, QPair<QString, QString> > res;
     for(QString e : links.keys()){
-        res[e.toInt()] =links[e].value<QPair<QString, QString>>() ;
+        res[e.toInt()] =links[e].value<QPair<QString, QString> >() ;
     }
     return res;
 }
