@@ -9,7 +9,7 @@
 VideoController::VideoController(QWebView * view,QObject *parent) : QObject(parent),webView(view)
 {
 
-    QFile file("tmpl.html");
+    QFile file("C:\\Users\\at\\Documents\\qt\\singk\\tmpl.html");
     if (!file.open(QIODevice::ReadOnly)){
 
     }
@@ -39,7 +39,7 @@ VideoController::VideoController(QWebView * view,QObject *parent) : QObject(pare
     connect(netController,SIGNAL(newClientConnected(Message&)),this,SLOT(helloClient(Message&)));
     connect(netController,SIGNAL(messageComeIn(Message&)),this,SLOT(parseMessage(Message&)));
     connect(netController,SIGNAL(serverStarted()),this,SLOT(serverStarted()));
-
+    connect(&onlineTimer,SIGNAL(timeout()),this,SLOT(heartBeat()));
 
 }
 void VideoController::attachWindowObject()
@@ -156,6 +156,7 @@ void VideoController::parseMessage(Message &msg)
 void VideoController::displayValue(double value){
     currentTime = value;
 
+
 }
 
 void VideoController::onLoaded(double duration){
@@ -183,6 +184,14 @@ void VideoController::helloClient(Message &msg)
 
 }
 
+void VideoController::heartBeat()
+{
+   // qDebug() << "heart Beat";
+    Message msg;
+    initMessage(msg);
+    netController->broadcastToClients(msg);
+}
+
 
 
 void VideoController::loadVideo(int id)
@@ -204,6 +213,7 @@ void VideoController::updateTime()
 {
     qDebug()<<"updateTime";
     frame->evaluateJavaScript("getCurrentTime()");
+    qDebug()<<"updated";
 
 }
 
@@ -211,6 +221,9 @@ void VideoController::serverStarted()
 {
     qDebug() << "server started";
     onlineTimer.setInterval(beatInterval);
+    onlineTimer.setSingleShot(false);
+    onlineTimer.start();
+
 }
 void VideoController::titleReturned(QString title)
 {
@@ -325,6 +338,7 @@ void VideoController::suggestPause(){
 void VideoController::initMessage(Message &msg)
 {
       msg.setCurrentId(currentId);
+      updateTime();
       msg.setTimeAt(currentTime);
       msg.setCurrentState(state);
 }
@@ -369,7 +383,7 @@ void VideoController::play(){
 void VideoController::pause(){
     if (netController->isOnline()) {
         if (netController->isHost()){
-
+            suggestPause();
         }else{
 
         }

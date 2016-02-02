@@ -51,6 +51,8 @@ private:
     void suggestPause();
     void initMessage(Message &msg);
     const int beatInterval = 2000;
+    const double maxDelay = 1;
+    const double bufferTime = 2;
 public:
 
     JsToQtApi * api;
@@ -85,6 +87,7 @@ private slots:
     void onLoaded(double duration);
     void youtubeApiReady();
     void helloClient(Message & msg);
+    void heartBeat();
 
 };
 
