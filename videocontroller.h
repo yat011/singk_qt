@@ -16,6 +16,7 @@
 #include "networkcontroller.h"
 #include "definition.h"
 #include "videodownloader.h"
+#include "videodestroyer.h"
 class VideoController : public QObject
 {
     Q_OBJECT
@@ -35,7 +36,7 @@ private:
     VideoDownloader * downloader;
 
     QMediaPlaylist playlist;
-
+    VideoDestroyer destroyer;
  //---------
     int vid = 0;
     int currentId =-1;

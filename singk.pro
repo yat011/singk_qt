@@ -23,7 +23,8 @@ SOURCES += main.cpp\
     message.cpp \
     user.cpp \
     videodownloader.cpp \
-    videoplayer.cpp
+    videoplayer.cpp \
+    videodestroyer.cpp
 
 HEADERS  += mainwindow.h \
     jstoqtapi.h \
@@ -36,7 +37,8 @@ HEADERS  += mainwindow.h \
     definition.h \
     user.h \
     videodownloader.h \
-    videoplayer.h
+    videoplayer.h \
+    videodestroyer.h
 
 FORMS    += mainwindow.ui \
     onlinedialog.ui

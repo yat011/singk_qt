@@ -602,8 +602,12 @@ void VideoController::clientInit(Message &msg)//just connected to server--- init
 void VideoController::setCurrentVideo(int id)
 {
     if (currentId != id && currentId != -1){
+        destroyer.pushVideo(links[currentId].first);
         links.remove(currentId);
+        //do garbage collection
+
         currentId=-1;
+
     }
     currentId = id;
     qDebug() << "set current" << currentId;
