@@ -62,6 +62,16 @@ void Message::setLinks(const QMap<int, QPair<QString, QString> > &value)
     }
 }
 
+void Message::addLink(int id, QPair<QString, QString> pair)
+{
+    links[QString::number(id)] = QVariant::fromValue(pair);
+}
+
+QPair<QString, QString> Message::getLink(int id)
+{
+    return links[QString::number(id)].value<QPair<QString, QString> >();
+}
+
 
 qint64 Message::getTimeAt() const
 {

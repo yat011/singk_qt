@@ -74,6 +74,9 @@ private:
     void suggestSeek(qint64 sec);
     void syncState(const Message &msg);
     void suggestNext();
+    void suggestAddVideo(QString title);
+    void clientAddVideo(Message &msg);
+    void suggestBuffer();
 public:
     QMediaPlayer player;
     JsToQtApi * api;

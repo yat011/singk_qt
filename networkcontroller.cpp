@@ -60,6 +60,7 @@ void NetworkController::newConnection()
 
         qDebug() << "new connection";
         QTcpSocket *socket = server->nextPendingConnection();
+        socket->setProperty("id",socket->socketDescriptor());
         connect(socket,SIGNAL(disconnected()),this,SLOT(clientDisconnected()));
         connect(socket,SIGNAL(readyRead()),this,SLOT(hostRead()));
         clients.insert(socket->socketDescriptor(),socket);
@@ -89,10 +90,11 @@ void NetworkController::hostRead(){
 
 void NetworkController::clientDisconnected()
 {
-        QTcpSocket * socket = (QTcpSocket*) sender();
+    QTcpSocket * socket = (QTcpSocket*) sender();
+    int id = socket->property("id").value<int>();
+    qDebug() << "client " << id << " disconnected";
+    clients.remove(id);
 
-    qDebug() << "client " << socket->socketDescriptor() << " disconnected";
-    clients.remove(socket->socketDescriptor());
 }
 
 void NetworkController::clientRead()

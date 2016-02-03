@@ -39,6 +39,7 @@ public:
         msg.setCurrentId(currentId);
         msg.setCurrentState(currentState);
         msg.setVariantLinks(links);
+        msg.setOptId(optId);
 
     }
 
@@ -58,6 +59,8 @@ public:
     QMap<int, QPair<QString,QString> > getLinks() const;
     void setVariantLinks(const QMap<QString, QVariant> &value);
     void setLinks(const QMap<int, QPair<QString,QString> > &value);
+    void addLink(int id,QPair<QString,QString> pair );
+    QPair<QString,QString> getLink(int id );
     int getCurrentState() const;
     void setCurrentState(int value);
 
