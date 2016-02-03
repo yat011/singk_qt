@@ -77,6 +77,8 @@ private:
     void suggestAddVideo(QString title);
     void clientAddVideo(Message &msg);
     void suggestBuffer();
+    bool clientControllable = true;
+    void hostAddVideo(Message &msg);
 public:
     QMediaPlayer player;
     JsToQtApi * api;

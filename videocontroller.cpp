@@ -224,6 +224,20 @@ void VideoController::parseMessage(Message &msg)
                 }
             }
             break;
+        case PLAY:
+            suggestPlay();
+            break;
+        case PAUSE:
+            suggestPause();
+            break;
+        case SEEK:
+            suggestSeek(msg.getTimeAt());
+        case CHANGE_TO:
+
+        break;
+        case ADD_VIDEO:
+            hostAddVideo(msg);
+            break;
         default:
             break;
         }
@@ -397,7 +411,13 @@ void VideoController::suggestAddVideo(QString title){
               emit videoAdded(vid-1, title);
          }
     }else{
-
+        qDebug()<<"client want to add " <<title;
+        QPair<QString,QString> temp = QPair<QString,QString>(title,url);
+        Message msg;
+        msg.addLink(0,temp);
+        msg.setType(ADD_VIDEO);
+        msg.setOptId(0);
+        netController->sendToHost(msg);
     }
 
 
@@ -415,7 +435,23 @@ void VideoController::clientAddVideo(Message &msg){
     }
 
 }
+void VideoController::hostAddVideo(Message &msg){
+    links[vid] = msg.getLink(msg.getOptId());
+    if (currentId == -1){//--if no video--
+         qDebug() << "no video";
+         loadVideo(vid);
+    }else{
+         qDebug() << "add to list";
+         emit videoAdded(vid, links[vid].first);
+    }
 
+    Message reply;
+    initMessage(reply);
+    reply.setType(ADD_VIDEO);
+    reply.addLink(vid,links[vid]);
+    reply.setOptId(vid++);
+    netController->broadcastToClients(reply);
+}
 
 
 void VideoController::addVideo(QString url){
@@ -680,6 +716,7 @@ void VideoController::suggestNext(){
            // suggestPlay();
    }
 
+
 }
 
 void VideoController::suggestPause(){
@@ -699,7 +736,10 @@ void VideoController::suggestPause(){
        netController->broadcastToClients(msg);
        _pause();
     }else{
-
+        Message msg;
+        msg.setType(PAUSE);
+        msg.setClientId(netController->getClientId());
+        netController->sendToHost(msg);
     }
 
 }
@@ -719,7 +759,11 @@ void VideoController::suggestSeek(qint64 pos){
          netController->broadcastToClients(msg);
         _seekTo(pos);
     }else{
-
+        Message msg;
+        msg.setClientId(netController->getClientId());
+        msg.setType(SEEK);
+        msg.setTimeAt(pos);
+        netController->sendToHost(msg);
     }
 
 }
@@ -745,13 +789,16 @@ void VideoController::suggestPlay()
         netController->broadcastToClients(msg);
 
     }else{
-
+        Message msg;
+        msg.setType(PLAY);
+        msg.setClientId(netController->getClientId());
+        netController->sendToHost(msg);
     }
 }
 void VideoController::play(){
     if (netController->isOnline()) {
 
-     suggestPlay();
+        suggestPlay();
     }else{
         _play();
     }
@@ -760,11 +807,8 @@ void VideoController::play(){
 }
 void VideoController::pause(){
     if (netController->isOnline()) {
-        if (netController->isHost()){
-            suggestPause();
-        }else{
 
-        }
+         suggestPause();
 
     }else{
         _pause();
@@ -773,11 +817,8 @@ void VideoController::pause(){
 }
 void VideoController::seekTo(qint64 sec){
     if (netController->isOnline()) {
-        if (netController->isHost()){
-            suggestSeek(sec);
-        }else{
 
-        }
+         suggestSeek(sec);
 
     }else{
         _seekTo(sec);
