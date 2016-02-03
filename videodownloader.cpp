@@ -38,7 +38,7 @@ void VideoDownloader::download(QString url,  int operation)
     connect(process,SIGNAL(error(QProcess::ProcessError)),this,SLOT(onError(QProcess::ProcessError)));
     connect(process,SIGNAL(readyRead()),this,SLOT(readyReadStandardOutput()));
     process->setArguments(args);
-    process->setProgram(QDir::homePath()+"/Documents/pythonBin/main.exe");
+    process->setProgram(QDir::currentPath()+"/pythonBin/main.exe");
     process->start();
 }
 
@@ -108,6 +108,8 @@ void VideoDownloader::onError(QProcess::ProcessError error)
     QProcess* process = (QProcess*) sender();
     qDebug() << "error :" << error;
     qDebug() << process->errorString();
+    process->deleteLater();
+    emit errorSig(process->errorString());
 }
 
 void VideoDownloader::readyReadStandardOutput()

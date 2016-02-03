@@ -21,6 +21,7 @@ public:
 
 signals:
     void finish(bool result, QString title,QString url, int operation);
+    void errorSig(QString error);
 public slots:
      void onFinished(int exitCode, QProcess::ExitStatus exit);
       void onStarted();

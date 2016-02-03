@@ -111,7 +111,7 @@ signals:
 
 private slots:
     void serverStarted();
- void applyAction();
+    void applyAction();
      void videoEnded();
     void parseMessage(Message &msg);
     void displayValue(double value);
@@ -121,6 +121,7 @@ private slots:
     void stateChanged(QMediaPlayer::State state);
     void mediaStatusChanged(QMediaPlayer::MediaStatus status);
     void onDownloadFinish(bool downloaded, QString title,QString url,  int operation);
+    void downloaderError(QString err);
     void positionChanged(qint64 position);
 };
 

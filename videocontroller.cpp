@@ -12,7 +12,7 @@ VideoController::VideoController(QVideoWidget *view, QObject *parent) : QObject(
 {
     videoWidget = view;
 
-    //player.setMedia(QUrl(QDir::currentPath()+"/Jay Chou 周杰倫【最長的電影 The Longest Movie】-Official Music Video.mp4"));
+
     player.setVideoOutput(view);
 
     /*
@@ -62,7 +62,7 @@ VideoController::VideoController(QVideoWidget *view, QObject *parent) : QObject(
     connect(netController,SIGNAL(serverStarted()),this,SLOT(serverStarted()));
     connect(&onlineTimer,SIGNAL(timeout()),this,SLOT(heartBeat()));
     connect(&waitTimer,SIGNAL(timeout()),this,SLOT(applyAction()));
-
+    connect(downloader,SIGNAL(errorSig(QString)),this,SLOT(downloaderError(QString)));
 }
 
 
@@ -498,6 +498,11 @@ void VideoController::onDownloadFinish(bool downloaded, QString title, QString u
 
 }
 
+void VideoController::downloaderError(QString err)
+{
+    emit consoleRead("Error:" + err);
+}
+
 void VideoController::positionChanged(qint64 position)
 {
     if (nextVid ==-1 && (player.duration()-position) < 5000 && links.count()>1){
@@ -575,7 +580,6 @@ void VideoController::clientInit(Message &msg)//just connected to server--- init
 {
 
     emit resetPlayList();
-    QDir::setCurrent("client");
     currentSeq = msg.getSeq();
     links = msg.getLinks();
     qDebug() << "init" << links.count();
