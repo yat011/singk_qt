@@ -12,20 +12,23 @@ void NetworkController::setClientId(int value)
     clientId = value;
 }
 
-void NetworkController::addClient(int id, QTcpSocket)
+void NetworkController::disconnectThis()
 {
-
+    if(host){
+        server->close();
+        for (int key : clients.keys()){
+            clients[key]->disconnect();
+        }
+        clients.clear();
+        online = false;
+        emit offline();
+    }else {
+        cSocket->disconnect();
+    }
 }
 
-void NetworkController::removeClient(int id)
-{
 
-}
 
-void NetworkController::sendToAllClients(QString str)
-{
-
-}
 
 NetworkController::NetworkController(QObject *parent) : QObject(parent)
 {
@@ -34,20 +37,28 @@ NetworkController::NetworkController(QObject *parent) : QObject(parent)
 
 void NetworkController::startServer(int port)
 {
-    host =true;
-    online= true;
+    if (online){
+        qDebug() << "cannot start server" ;
+        return;
+    }
+
+
     server = new QTcpServer();
     if(!server->listen(QHostAddress::Any, port))
      {
             qDebug() << "Could not start server";
+            server->deleteLater();
         }
         else
         {
+            host =true;
+            online= true;
             qDebug() << "Listening to port " << port << "...";
            connect(server,SIGNAL(newConnection()),this, SLOT(newConnection()));
 
            host = true;
            online =true;
+           emit onlineSig(host);
            emit serverStarted();
     }
 }
@@ -121,6 +132,10 @@ void NetworkController::clientSend(QString str)
 }
 void NetworkController::connectToHost(QString address, int port)
 {
+    if (online){
+        qDebug() << "cannot connect again" ;
+        return;
+    }
     cSocket = new QTcpSocket(this);
     cSocket->connectToHost(address,port);
     connect(cSocket, SIGNAL(connected()),this,SLOT(connectedToHost()));
@@ -153,5 +168,14 @@ void NetworkController::connectedToHost() //client
     qDebug() << "connected to Host";
     online= true;
     host =false;
+    emit onlineSig(host);
     connect(cSocket, SIGNAL(readyRead()),this,SLOT(clientRead()));
+    connect(cSocket, SIGNAL(disconnected()),this,SLOT(onDisconnectedFromHost()));
+}
+
+void NetworkController::onDisconnectedFromHost()
+{
+    online= false;
+    emit offline();
+
 }

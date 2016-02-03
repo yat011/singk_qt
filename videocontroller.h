@@ -26,9 +26,9 @@ private:
     QNetworkAccessManager qnam;
     bool webReady = false;
     //get title
-    bool httpBusy= false;
+  //  bool httpBusy= false;
     QString tempBuffer;
-    QString url="";
+   // QString url="";
     void titleReturned(QString title);
     void clientInit(Message &msg);
     double currentTime =0;
@@ -49,36 +49,39 @@ private:
     void _seekTo(qint64 pos);
     void pickNextVideo();
 
-    void suggestPlay();
+    void suggestPlay(int clientId=-1);
    //---- http related
-    int httpOperation = NONE;
+    //int httpOperation = NONE;
 
    //---online
     int currentSeq = 0;
     int onlineStatus = IDLE;
     int waitingCount =0;
-    int nextCommand = 0;
+  //  int nextCommand = 0;
     Message BufferMsg ;
     QTimer onlineTimer;
-    void suggestPause();
+    QTimer waitTimer;
+    void suggestPause(int clientId=-1);
     void initMessage(Message &msg);
     const int beatInterval = 2000;
     const qint64 maxDelay = 200;
-    const double bufferTime = 2;
+    const int waitTime = 4000;
     QString extractVid(QString url);
-    void _addVideo(QString title);
+    void _addVideo(QString title, QString url);
     void downloadVideo(QString url);
     bool playerLoaded = false;
     bool videoLoaded = false;
     void replyPrePlay(Message& msg);
-    void suggestSeek(qint64 sec);
+    void suggestSeek(qint64 sec,int clientId=-1);
     void syncState(const Message &msg);
     void suggestNext();
-    void suggestAddVideo(QString title);
+    void suggestAddVideo(QString title, QString url);
     void clientAddVideo(Message &msg);
     void suggestBuffer();
     bool clientControllable = true;
-    void hostAddVideo(Message &msg);
+    void hostAddVideo(Message &msg, int clientId);
+
+
 public:
     QMediaPlayer player;
     JsToQtApi * api;
@@ -93,7 +96,7 @@ public:
     void loadVideo(int id);
     void addVideo(QString url);
     void updateTime();
-
+    bool playable();
 
 
 
@@ -103,22 +106,20 @@ signals:
     void videoAdded(int vid,QString title);
     void videoOnPlay(int vid,QString title);
     void resetPlayList();
+    void consoleRead(QString msg);
 
 private slots:
     void serverStarted();
-     void attachWindowObject();
-     void replyReady();
-     void replyFinished();
+ void applyAction();
      void videoEnded();
     void parseMessage(Message &msg);
     void displayValue(double value);
     void onLoaded(double duration);
-    void youtubeApiReady();
     void helloClient(Message & msg);
     void heartBeat();
     void stateChanged(QMediaPlayer::State state);
     void mediaStatusChanged(QMediaPlayer::MediaStatus status);
-    void onDownloadFinish(bool downloaded, QString title);
+    void onDownloadFinish(bool downloaded, QString title,QString url,  int operation);
     void positionChanged(qint64 position);
 };
 

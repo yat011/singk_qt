@@ -48,7 +48,7 @@ VideoController::VideoController(QVideoWidget *view, QObject *parent) : QObject(
             */
 
     downloader= new VideoDownloader();
-    connect(downloader,SIGNAL(finish(bool,QString)),this,SLOT(onDownloadFinish(bool,QString)));
+    connect(downloader,SIGNAL(finish(bool,QString,QString,int)),this,SLOT(onDownloadFinish(bool,QString,QString,int)));
 
     //player
     connect(&player,SIGNAL(mediaStatusChanged(QMediaPlayer::MediaStatus)),this,SLOT(mediaStatusChanged(QMediaPlayer::MediaStatus)));
@@ -61,39 +61,12 @@ VideoController::VideoController(QVideoWidget *view, QObject *parent) : QObject(
     connect(netController,SIGNAL(messageComeIn(Message&)),this,SLOT(parseMessage(Message&)));
     connect(netController,SIGNAL(serverStarted()),this,SLOT(serverStarted()));
     connect(&onlineTimer,SIGNAL(timeout()),this,SLOT(heartBeat()));
-
-}
-void VideoController::attachWindowObject()
-{
-    qDebug() << "attach";
-    frame->addToJavaScriptWindowObject(QString("api"), api);
-}
-
-void VideoController::replyReady()
-{
-    QNetworkReply* reply =  (QNetworkReply* )sender();
-    tempBuffer += QString(reply->readAll());
-
+    connect(&waitTimer,SIGNAL(timeout()),this,SLOT(applyAction()));
 
 }
 
-void VideoController::replyFinished()
-{
-    QNetworkReply* reply =  (QNetworkReply* )sender();
-    if( reply->error() == 0){
-        QRegExp exp("<title>(.*)</title>",Qt::CaseInsensitive);
-        exp.indexIn(tempBuffer);
 
 
-        this->titleReturned(exp.capturedTexts()[1]);
-    }else{
-        //error
-        qDebug()<< "title error";
-        this->httpBusy =false;
-    }
-
-    reply->deleteLater();
-}
 
 void VideoController::videoEnded()
 {
@@ -148,9 +121,15 @@ void VideoController::parseMessage(Message &msg)
         switch(msg.getType()){
         case HELLO:
             clientInit(msg);
+            emit consoleRead("Connected");
             break;
         case PRE_PLAY:
             replyPrePlay(msg);
+            if (msg.getClientId()==-1){
+                emit consoleRead("host clicks play");
+            }else{
+                emit consoleRead("client"+QString::number(msg.getClientId())+" clicks play");
+            }
             break;
         case PLAY:
         if (currentSeq < msg.getSeq()){
@@ -166,7 +145,11 @@ void VideoController::parseMessage(Message &msg)
                 qDebug() << "client pause";
                 currentSeq = msg.getSeq();
                 _pause();
-                //syncState(msg);
+                if (msg.getClientId()==-1){
+                    emit consoleRead("host clicks pause");
+                }else{
+                    emit consoleRead("client"+QString::number(msg.getClientId())+" clicks pause");
+                }
 
             }
             break;
@@ -175,13 +158,18 @@ void VideoController::parseMessage(Message &msg)
                 qDebug()<< "client seek";
                 currentSeq = msg.getSeq();
                 _seekTo(msg.getTimeAt());
-                //syncState(msg);
+                if (msg.getClientId()==-1){
+                    emit consoleRead("host seek to "+ QString::number(msg.getTimeAt()/1000));
+                }else{
+                    emit consoleRead("client"+QString::number(msg.getClientId())+" seek to "+  QString::number(msg.getTimeAt()/1000));
+                }
             }
         case CHANGE_TO:
             if (currentSeq<msg.getSeq()){
                 qDebug()<< "client change To";
                 currentSeq = msg.getSeq();
                 loadVideo(msg.getCurrentId());
+                 emit consoleRead("change to next Video");
             }
         break;
         case HEART_BEAT:
@@ -191,6 +179,11 @@ void VideoController::parseMessage(Message &msg)
             }
             break;
         case ADD_VIDEO:
+            if (msg.getClientId()==-1){
+                emit consoleRead("host add a video");
+            }else{
+                emit consoleRead("client"+QString::number(msg.getClientId())+" add a video");
+            }
             clientAddVideo(msg);
             break;
         case BUFFER:
@@ -206,37 +199,30 @@ void VideoController::parseMessage(Message &msg)
         switch(msg.getType()){
         case OK:
              qDebug() << "OK";
-             qDebug() << "waiting" << waitingCount;
-             qDebug() << " seq: " << msg.getSeq() << currentSeq;
             if (onlineStatus == WAITING && msg.getSeq()==currentSeq){
                 if ((--waitingCount)==0){
-                    qDebug() << "play";
-                    Message reply;
-                    initMessage(reply);
-                    reply.setSeq(++currentSeq);
-                    reply.setType(nextCommand);
-                    netController->broadcastToClients(reply);
-                    if (nextCommand == PLAY){
-                        _play();
-                        onlineStatus=IDLE;
-                    }
-
+                    waitTimer.stop();
+                    applyAction();
                 }
             }
             break;
         case PLAY:
-            suggestPlay();
+            emit consoleRead("client"+QString::number(msg.getClientId())+" plays");
+            suggestPlay(msg.getClientId());
             break;
         case PAUSE:
-            suggestPause();
+            emit consoleRead("client"+QString::number(msg.getClientId())+" pauses");
+            suggestPause(msg.getClientId());
             break;
         case SEEK:
-            suggestSeek(msg.getTimeAt());
+            emit consoleRead("client"+QString::number(msg.getClientId())+" seek to "+  QString::number(msg.getTimeAt()/1000));
+            suggestSeek(msg.getTimeAt(),msg.getClientId());
         case CHANGE_TO:
 
         break;
         case ADD_VIDEO:
-            hostAddVideo(msg);
+            emit consoleRead("client"+QString::number(msg.getClientId())+" add a video");
+            hostAddVideo(msg,msg.getClientId());
             break;
         default:
             break;
@@ -290,10 +276,7 @@ void VideoController::onLoaded(double duration){
 
 }
 
-void VideoController::youtubeApiReady(){
-    qDebug() << "ready";
-    webReady =true;
-}
+
 
 void VideoController::helloClient(Message &msg)
 {
@@ -303,6 +286,7 @@ void VideoController::helloClient(Message &msg)
     msg.setCurrentState(player.state());
     msg.setSeq(currentSeq);
 
+    emit consoleRead("client"+QString::number(msg.getClientId())+" joined");
 }
 
 void VideoController::heartBeat()
@@ -352,15 +336,15 @@ void VideoController::mediaStatusChanged(QMediaPlayer::MediaStatus status)
 void VideoController::loadVideo(int id)
 {
 
-    if (!links.contains(id)){
+    if (!links.contains(id)&& id != -1){
         qDebug() << "doesnt not contain video " << id;
         return;
-    }
-
-
-    setCurrentVideo(id);
-    if (id == -1){
-        return;
+    }else{
+        setCurrentVideo(id);
+        if (id == -1){
+            player.setMedia(QUrl());
+            return;
+        }
     }
 
      qDebug()<<"try load";
@@ -369,28 +353,26 @@ void VideoController::loadVideo(int id)
         nextVid = -1;
     }else{
         //download;
-        if (httpOperation != BUFFER){
-            downloadVideo(links[id].second);
-        }
+
+         downloadVideo(links[id].second);
+
     }
 
 }
 void VideoController::downloadVideo(QString url){
-    if (downloader->getBusy()){
-        qDebug() << "busy";
-        return;
-    }
+
     QString id = extractVid(url);
     if (id ==""){
         qDebug() << "invalid";
         return;
     }
-    this->url = url;
-    httpOperation=BUFFER;
-    downloader->download(url);
+
+
+    downloader->download(url,BUFFER);
+    emit consoleRead("downloading video");
 
 }
-void VideoController::suggestAddVideo(QString title){
+void VideoController::suggestAddVideo(QString title,QString url){
 
     if (netController->isHost()){
 
@@ -401,6 +383,7 @@ void VideoController::suggestAddVideo(QString title){
          msg.addLink(vid,temp);
          msg.setType(ADD_VIDEO);
          msg.setOptId(vid);
+
          netController->broadcastToClients(msg);
          links[vid++] = QPair<QString,QString>(title,url);
          if (currentId == -1){//--if no video--
@@ -435,7 +418,7 @@ void VideoController::clientAddVideo(Message &msg){
     }
 
 }
-void VideoController::hostAddVideo(Message &msg){
+void VideoController::hostAddVideo(Message &msg,int clientId){
     links[vid] = msg.getLink(msg.getOptId());
     if (currentId == -1){//--if no video--
          qDebug() << "no video";
@@ -450,54 +433,69 @@ void VideoController::hostAddVideo(Message &msg){
     reply.setType(ADD_VIDEO);
     reply.addLink(vid,links[vid]);
     reply.setOptId(vid++);
+    reply.setClientId(clientId);
     netController->broadcastToClients(reply);
+}
+
+void VideoController::applyAction()
+{
+    if (currentSeq == BufferMsg.getSeq()){
+        qDebug() << "apply action";
+        Message reply;
+        initMessage(reply);
+        reply.setSeq(++currentSeq);
+        if (BufferMsg.getType() == PRE_PLAY){
+            reply.setType(PLAY);
+            netController->broadcastToClients(reply);
+            _play();
+            onlineStatus=IDLE;
+        }
+    }
 }
 
 
 void VideoController::addVideo(QString url){
 
-        if (downloader->getBusy()){
-            qDebug() << "busy";
-            return;
-        }
+
         QString id = extractVid(url);
         if (id ==""){
             qDebug() << "invalid";
             return;
         }
-        this->url = url;
-        httpOperation=ADD_VIDEO;
+
         if (currentId == -1){
-            downloader->download(url);
+            downloader->download(url,ADD_VIDEO);
         }else{
-            downloader->getTitle(url);
+            downloader->getTitle(url,ADD_VIDEO);
         }
         // wait for callback
+        emit consoleRead("wait for data");
 
 }
 bool VideoController::videoExists(QString title){
     return QFile::exists(QDir::currentPath() + "/videos/" + title + ".mp4");
 }
 
-void VideoController::onDownloadFinish(bool downloaded, QString title){
+void VideoController::onDownloadFinish(bool downloaded, QString title, QString url, int operation){
 
+   // qDebug() << title << url << operation;
     if (title != ""){
-        if (httpOperation == BUFFER){
+        if (operation == BUFFER){
             //do sth
             if (links.contains(currentId)){
                 if (links[currentId].first == title){
                     loadVideo(currentId);
                 }
             }
-        }else if(httpOperation == ADD_VIDEO){
-            _addVideo(title);
+        }else if(operation == ADD_VIDEO){
+            _addVideo(title,url);
         }else{
             //ABORT
         }
     }else{
         //error
     }
-    httpOperation=NONE;
+
 }
 
 void VideoController::positionChanged(qint64 position)
@@ -516,10 +514,10 @@ void VideoController::positionChanged(qint64 position)
 }
 
 
-void VideoController::_addVideo(QString title){
+void VideoController::_addVideo(QString title,QString url){
 
     if (netController->isOnline()){
-        suggestAddVideo(title);
+        suggestAddVideo(title,url);
 
     }else{
 
@@ -554,6 +552,15 @@ void VideoController::updateTime()
 
 }
 
+bool VideoController::playable()
+{
+    if (player.mediaStatus() >=3 && player.mediaStatus() <=6){
+        return true;
+    }else{
+        return false;
+    }
+}
+
 void VideoController::serverStarted()
 {
     qDebug() << "server started";
@@ -562,23 +569,7 @@ void VideoController::serverStarted()
     onlineTimer.start();
 
 }
-void VideoController::titleReturned(QString title)
-{
-    QPair<QString,QString> * ptr= new QPair<QString,QString>(title,url);
-    this->links.insert(vid++,*ptr);
-    if (currentId == -1){//--if no video--
-        qDebug() << "no video";
-        loadVideo(vid-1);
-    }else{
-        qDebug() << "add to list";
-        emit videoAdded(vid-1, title);
-    }
 
-
-    this->httpBusy =false;
-
-
-}
 
 void VideoController::clientInit(Message &msg)//just connected to server--- init
 {
@@ -588,7 +579,7 @@ void VideoController::clientInit(Message &msg)//just connected to server--- init
     currentSeq = msg.getSeq();
     links = msg.getLinks();
     qDebug() << "init" << links.count();
-    httpOperation=NONE;
+
     if (links.count() >0){
         currentId = msg.getCurrentId();
         if (currentId!=-1){
@@ -606,17 +597,7 @@ void VideoController::clientInit(Message &msg)//just connected to server--- init
     syncState(msg);
 }
 
-void VideoController::getTitle(QString url){
 
-    QUrl u(url);
-    this->url = url;
-    QNetworkReply * reply = qnam.get(QNetworkRequest (url));
-    tempBuffer = "";
-    this->httpBusy = true;
-    connect(reply, SIGNAL(readyRead()),this,SLOT(replyReady()));
-    connect(reply, SIGNAL(finished()),this,SLOT(replyFinished()) );
-
-}
 
 void VideoController::setCurrentVideo(int id)
 {
@@ -719,7 +700,7 @@ void VideoController::suggestNext(){
 
 }
 
-void VideoController::suggestPause(){
+void VideoController::suggestPause(int clientId){
     if (player.state()==player.PausedState){
         return;
     }
@@ -732,6 +713,7 @@ void VideoController::suggestPause(){
         Message msg;
         initMessage(msg);
         msg.setSeq(++currentSeq);
+        msg.setClientId(clientId);
         msg.setType(PAUSE);
        netController->broadcastToClients(msg);
        _pause();
@@ -743,7 +725,7 @@ void VideoController::suggestPause(){
     }
 
 }
-void VideoController::suggestSeek(qint64 pos){
+void VideoController::suggestSeek(qint64 pos,int clientId){
 
     if (netController->isHost()){
         if(netController->clients.count()==0){
@@ -755,6 +737,7 @@ void VideoController::suggestSeek(qint64 pos){
         initMessage(msg);
         msg.setSeq(++currentSeq);
         msg.setTimeAt(pos);
+        msg.setClientId(clientId);
         msg.setType(SEEK);
          netController->broadcastToClients(msg);
         _seekTo(pos);
@@ -768,9 +751,12 @@ void VideoController::suggestSeek(qint64 pos){
 
 }
 
-void VideoController::suggestPlay()
+void VideoController::suggestPlay(int clientId)
 {
     if (player.state()==player.PlayingState){
+        return;
+    }
+    if (!playable()){
         return;
     }
     if (netController->isHost()){//pre play
@@ -783,9 +769,12 @@ void VideoController::suggestPlay()
         initMessage(msg);
         msg.setSeq(++currentSeq);
         msg.setType(PRE_PLAY); 
+        msg.setClientId(clientId);
         waitingCount = netController->clients.count();
         onlineStatus = WAITING;
-        nextCommand=PLAY;
+
+        waitTimer.start(waitTime);
+        msg.copyTo(BufferMsg);
         netController->broadcastToClients(msg);
 
     }else{

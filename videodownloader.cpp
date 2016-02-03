@@ -2,15 +2,6 @@
 #include <QDebug>
 #include <QDir>
 #include <QProcess>
-bool VideoDownloader::getBusy() const
-{
-    return busy;
-}
-
-void VideoDownloader::setBusy(bool value)
-{
-    busy = value;
-}
 
 VideoDownloader::VideoDownloader(QObject *parent) : QObject(parent)
 {
@@ -18,15 +9,23 @@ VideoDownloader::VideoDownloader(QObject *parent) : QObject(parent)
 
 }
 
-void VideoDownloader::download(QString url)
+void VideoDownloader::download(QString url,  int operation)
 {
+    /*
     if (busy){
-        return;
-    }
-    busy = true;
-    title="";
-    process = new QProcess(this);
+        if (critical){
+            process->terminate();
+            title="";
+        }else{
+            return;
+        }
+    }*/
 
+
+   QProcess* process = new QProcess(this);
+    process->setProperty("title","");
+    process->setProperty("url",url);
+    process->setProperty("operation",operation);
     QStringList args;
     if (!QDir("videos").exists()){
         QDir().mkdir("videos");
@@ -43,15 +42,22 @@ void VideoDownloader::download(QString url)
     process->start();
 }
 
-void VideoDownloader::getTitle(QString url)
+void VideoDownloader::getTitle(QString url, int operation)
 {
+/*
     if (busy){
-        return;
+        if (critical){
+            process->terminate();
+            title="";
+        }else{
+            return;
+        }
     }
-    busy = true;
-    title="";
-    process = new QProcess(this);
-
+    */
+    QProcess* process = new QProcess(this);
+    process->setProperty("title","");
+    process->setProperty("url",url);
+    process->setProperty("operation",operation);
     QStringList args;
     if (!QDir("videos").exists()){
         QDir().mkdir("videos");
@@ -66,19 +72,24 @@ void VideoDownloader::getTitle(QString url)
     process->setArguments(args);
     process->setProgram(QDir::homePath()+"/Documents/pythonBin/main.exe");
     process->start();
+
 }
 
 void VideoDownloader::onFinished(int exitCode, QProcess::ExitStatus exit)
 {
+    QProcess* process = (QProcess*) sender();
+    QString title = process->property("title").value<QString>();
+    QString url = process->property("url").value<QString>();
+    int op = process->property("operation").value<int>();
     if (exitCode != 0){
         qDebug() <<"fail download";
-        emit finish(false,title);
+        emit finish(false,title,url,op);
     }else{
         qDebug() <<"successly download";
-        emit finish (true,title);
+        emit finish (true,title,url,op);
     }
     process->deleteLater();
-    busy = false;
+
 }
 
 void VideoDownloader::onStarted()
@@ -94,19 +105,21 @@ qDebug() << newState;
 
 void VideoDownloader::onError(QProcess::ProcessError error)
 {
+    QProcess* process = (QProcess*) sender();
     qDebug() << "error :" << error;
     qDebug() << process->errorString();
 }
 
 void VideoDownloader::readyReadStandardOutput()
 {
+    QProcess* process = (QProcess*) sender();
     QString msg=  QString(process->readAll());
 
     QRegExp exp("\\{title:(.*)\\}",Qt::CaseInsensitive);
 
     if (exp.indexIn(msg)!=-1){
      qDebug() << exp.capturedTexts();
-     title= exp.capturedTexts()[1];
+     process->setProperty("title",exp.capturedTexts()[1]);
     }
 
    // qDebug() <<  process->readyReadStandardError();

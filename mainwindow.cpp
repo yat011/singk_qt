@@ -24,6 +24,11 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
     ui->playBtn->setIcon(style()->standardIcon(QStyle::SP_MediaPlay));
+    ui->playBtn->setText("");
+    ui->pauseBtn->setIcon(style()->standardIcon(QStyle::SP_MediaPause));
+    ui->pauseBtn->setText("");
+    ui->fullScreenBtn->setIcon(style()->standardIcon(QStyle::SP_TitleBarMaxButton));
+    ui->fullScreenBtn->setText("");
 
 
     /*
@@ -44,6 +49,12 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(video,SIGNAL(videoOnPlay(int,QString)),this, SLOT(videoOnPlay(int,QString)));
     connect(&video->player,SIGNAL(durationChanged(qint64)),this,SLOT(durationChanged(qint64)));
     connect(&video->player,SIGNAL(positionChanged(qint64)),this,SLOT(positionChanged(qint64)));
+    connect (video,SIGNAL(consoleRead(QString)),this,SLOT(showConsoleMessage(QString)));
+    connect(video->netController,SIGNAL(onlineSig(bool)),this,SLOT(online(bool)));
+    connect(video->netController,SIGNAL(offline()),this,SLOT(offline()));
+    connect(video,SIGNAL(resetPlayList()),this,SLOT(resetList()));
+    //connect(videoWidget,SIGNAL(mouseDoubleClickEvent(QMouseEvent * )),this, SLOT(onDoubleClicked(QMoustEvent*)));
+
 }
 
 MainWindow::~MainWindow()
@@ -88,11 +99,16 @@ void MainWindow::on_addBtn_clicked()
 
 void MainWindow::showOnlineDialog()
 {
-    if (this->dialog == 0){
-        dialog = new OnlineDialog(this);
+    if (!video->netController->isOnline()){
+        if (this->dialog == 0){
+            dialog = new OnlineDialog(this);
 
+        }
+        dialog->show();
+    }else{
+
+        video->netController->disconnectThis();
     }
-    dialog->show();
 }
 void MainWindow::videoAdded(int id,QString title){
     qDebug() << id << " " << title;
@@ -140,6 +156,8 @@ void MainWindow::on_actionOnline_triggered()
     showOnlineDialog();
 }
 
+
+
 void MainWindow::hostClicked()
 {
     qDebug() << dialog->getPortValue();
@@ -163,5 +181,42 @@ void MainWindow::test()
    // w2->video->netController->connectToHost("localhost",1234);
    // MainWindow * w3 = new MainWindow();
     //w3->show();
-   // w3->video->netController->connectToHost("localhost",1234);
+    // w3->video->netController->connectToHost("localhost",1234);
+}
+
+void MainWindow::showConsoleMessage(QString msg)
+{
+    ui->consoleDisplay->append(msg+"\n");
+}
+
+void MainWindow::online(bool host)
+{
+    if (host){
+        setWindowTitle("online(host)");
+    }else{
+        setWindowTitle("online(client)");
+    }
+    ui->actionOnline->setText("Offline");
+}
+
+void MainWindow::offline()
+{
+    setWindowTitle("offline");
+    ui->actionOnline->setText("Online");
+}
+
+void MainWindow::on_fullScreenBtn_clicked()
+{
+    videoWidget->setFullScreen(true);
+}
+
+void MainWindow::onDoubleClicked(QMouseEvent *event)
+{
+    qDebug()<<"dc";
+}
+
+void MainWindow::resetList()
+{
+    model->clear();
+    this->itemMap.clear();
 }

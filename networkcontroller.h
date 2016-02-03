@@ -17,9 +17,8 @@ private:
     QTcpSocket * cSocket;
 
     int clientId = 0;
-    void addClient(int id, QTcpSocket);
-    void removeClient(int id);
-    void sendToAllClients(QString str);
+
+
 public:
     QMap<int, QTcpSocket* >clients;
     explicit NetworkController(QObject *parent = 0);
@@ -35,10 +34,13 @@ public:
 
     int getClientId() const;
     void setClientId(int value);
+    void disconnectThis();
 
 
 signals:
     void newClientConnected(Message &msg);
+    void onlineSig(bool host);
+    void offline();
     void serverStarted();
     void messageComeIn(Message &msg);
 private slots:
@@ -46,7 +48,9 @@ private slots:
     void newConnection();
     void clientDisconnected();
     //client----
+
     void connectedToHost();
+    void onDisconnectedFromHost();
     void clientRead();
     void clientSend(QString str);
     void hostRead();

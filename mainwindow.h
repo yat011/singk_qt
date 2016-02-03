@@ -8,6 +8,7 @@
 #include <QMap>
 #include <QVideoWidget>
 #include <QMediaPlayer>
+
 namespace Ui {
 class MainWindow;
 }
@@ -51,6 +52,13 @@ public slots:
     void hostClicked();
     void clientClicked();
     void test();
+private slots:
+    void showConsoleMessage(QString msg);
+    void online(bool host);
+    void offline();
+    void on_fullScreenBtn_clicked();
+    void onDoubleClicked(QMouseEvent* event);
+    void resetList();
 
 private:
     Ui::MainWindow *ui;
