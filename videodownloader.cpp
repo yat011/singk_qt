@@ -43,6 +43,31 @@ void VideoDownloader::download(QString url)
     process->start();
 }
 
+void VideoDownloader::getTitle(QString url)
+{
+    if (busy){
+        return;
+    }
+    busy = true;
+    title="";
+    process = new QProcess(this);
+
+    QStringList args;
+    if (!QDir("videos").exists()){
+        QDir().mkdir("videos");
+    }
+
+    args<<"-t"<< "1" << url;
+    connect(process,SIGNAL(finished(int,QProcess::ExitStatus)), this, SLOT(onFinished(int,QProcess::ExitStatus)));
+    connect(process,SIGNAL(started()), this, SLOT(onStarted()));
+    connect(process,SIGNAL(stateChanged(QProcess::ProcessState)), this, SLOT(onStageChange(QProcess::ProcessState)));
+    connect(process,SIGNAL(error(QProcess::ProcessError)),this,SLOT(onError(QProcess::ProcessError)));
+    connect(process,SIGNAL(readyRead()),this,SLOT(readyReadStandardOutput()));
+    process->setArguments(args);
+    process->setProgram(QDir::homePath()+"/Documents/pythonBin/main.exe");
+    process->start();
+}
+
 void VideoDownloader::onFinished(int exitCode, QProcess::ExitStatus exit)
 {
     if (exitCode != 0){

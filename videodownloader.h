@@ -15,6 +15,7 @@ private :
 public:
     explicit VideoDownloader(QObject *parent = 0);
     void download(QString url);
+    void getTitle(QString url);
 
     bool getBusy() const;
     void setBusy(bool value);

@@ -70,7 +70,7 @@ void MainWindow::on_timeSlider_sliderReleased()
 
 void MainWindow::on_timeSlider_sliderPressed()
 {
-    video->pause();
+    //video->pause();
 }
 
 void MainWindow::on_addBtn_clicked()

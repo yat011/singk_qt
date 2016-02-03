@@ -11,7 +11,7 @@ class Message : public SerializableObject
 
     Q_PROPERTY(int seq READ getSeq WRITE setSeq)
     Q_PROPERTY(int clientId READ getClientId WRITE setClientId)
-    Q_PROPERTY(double timeAt READ getTimeAt WRITE setTimeAt)
+    Q_PROPERTY(qint64 timeAt READ getTimeAt WRITE setTimeAt)
     Q_PROPERTY(int currentId READ getCurrentId WRITE setCurrentId)
     Q_PROPERTY(int type READ getType WRITE setType)
     Q_PROPERTY(int currentState READ getCurrentState WRITE setCurrentState)
@@ -24,13 +24,21 @@ public:
 
     Message();
     int clientId = -1;
-    int type = HELLO;
+    int type = NONE;
     int currentState = PAUSE;
-    double timeAt = -1;
+    qint64 timeAt = -1;
     int currentId = -1;
     QMap<QString, QVariant > links;
 
+    void copyTo(Message & msg){
+        msg.setSeq(seq);
+        msg.setClientId(clientId);
+        msg.setType(type);
+        msg.setCurrentId(currentId);
+        msg.setCurrentState(currentState);
+        msg.setVariantLinks(links);
 
+    }
 
     int getType() const;
     void setType(int value);
@@ -38,8 +46,8 @@ public:
     void setClientId(int value);
     int getCurrentId() const;
     void setCurrentId(int value);
-    double getTimeAt() const;
-    void setTimeAt(double value);
+    qint64 getTimeAt() const;
+    void setTimeAt(qint64 value);
 
     int getSeq() const;
     void setSeq(int value);
@@ -50,6 +58,7 @@ public:
     void setLinks(const QMap<int, QPair<QString,QString> > &value);
     int getCurrentState() const;
     void setCurrentState(int value);
+
 };
 
 #endif // MESSAGE_H

@@ -53,12 +53,12 @@ void Message::setLinks(const QMap<int, QPair<QString, QString> > &value)
 }
 
 
-double Message::getTimeAt() const
+qint64 Message::getTimeAt() const
 {
     return timeAt;
 }
 
-void Message::setTimeAt(double value)
+void Message::setTimeAt(qint64 value)
 {
     timeAt = value;
 }

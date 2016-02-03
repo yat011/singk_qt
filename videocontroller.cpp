@@ -12,7 +12,7 @@ VideoController::VideoController(QVideoWidget *view, QObject *parent) : QObject(
 {
     videoWidget = view;
 
-    player.setMedia(QUrl(QDir::currentPath()+"/Jay Chou 周杰倫【最長的電影 The Longest Movie】-Official Music Video.mp4"));
+    //player.setMedia(QUrl(QDir::currentPath()+"/Jay Chou 周杰倫【最長的電影 The Longest Movie】-Official Music Video.mp4"));
     player.setVideoOutput(view);
 
     /*
@@ -50,6 +50,9 @@ VideoController::VideoController(QVideoWidget *view, QObject *parent) : QObject(
     downloader= new VideoDownloader();
     connect(downloader,SIGNAL(finish(bool,QString)),this,SLOT(onDownloadFinish(bool,QString)));
 
+    //player
+    connect(&player,SIGNAL(mediaStatusChanged(QMediaPlayer::MediaStatus)),this,SLOT(mediaStatusChanged(QMediaPlayer::MediaStatus)));
+    connect(&player,SIGNAL(positionChanged(qint64)),this,SLOT(positionChanged(qint64)));
 
 
     netController = new NetworkController();
@@ -94,15 +97,41 @@ void VideoController::replyFinished()
 
 void VideoController::videoEnded()
 {
+
     qDebug() << "ended";
-    links.remove(currentId);
 
-    if (links.size() >0){
-        loadVideo(links.begin().key());
-
-    }else{
-        currentId =-1;
+    if (!netController->isOnline()){
+        links.remove(currentId);
+        currentId=-1;
+        if (links.size() >0){
+            if (nextVid!=-1){
+                loadVideo(nextVid);
+            }else{
+                pickNextVideo();
+                loadVideo(nextVid);
+            }
+        }
     }
+}
+void VideoController::replyPrePlay( Message &msg){
+    Message reply;
+    qDebug()<<"client: "<< currentSeq << " " << msg.getSeq();
+
+    if (currentSeq < msg.getSeq()){
+        qDebug()<<"client: pre play";
+        if(player.mediaStatus() >=3 && player.mediaStatus() <=6){
+            currentSeq = msg.getSeq();
+            reply.setClientId(netController->getClientId());
+            reply.setSeq(currentSeq);
+            reply.setType(OK);
+            netController->sendToHost(reply);
+       }else{//beffer Msg
+            qDebug() <<"notready";
+            msg.copyTo(this->BufferMsg);
+        }
+    }
+
+
 }
 
 void VideoController::parseMessage(Message &msg)
@@ -114,16 +143,7 @@ void VideoController::parseMessage(Message &msg)
             clientInit(msg);
             break;
         case PRE_PLAY:
-        qDebug()<<"client: "<< currentSeq << " " << msg.getSeq();
-        if (currentSeq < msg.getSeq()){
-            qDebug()<<"client: pre play";
-            currentSeq = msg.getSeq();
-            reply.setClientId(netController->getClientId());
-            reply.setSeq(currentSeq);
-            reply.setType(OK);
-            netController->sendToHost(reply);
-        }
-
+            replyPrePlay(msg);
             break;
         case PLAY:
         if (currentSeq < msg.getSeq()){
@@ -139,7 +159,19 @@ void VideoController::parseMessage(Message &msg)
                 currentSeq = msg.getSeq();
                 _pause();
             }
+            break;
+        case SEEK:
+            if (currentSeq<msg.getSeq()){
+                qDebug()<< "client seek";
+                currentSeq = msg.getSeq();
+                _seekTo(msg.getTimeAt());
+            }
         break;
+        case HEART_BEAT:
+            if (currentSeq <= msg.getSeq()){
+                qDebug() << "client receive heart beat";
+                syncState(msg);
+            }
         default:
             break;
         }
@@ -147,14 +179,15 @@ void VideoController::parseMessage(Message &msg)
         switch(msg.getType()){
         case OK:
              qDebug() << "OK";
+             qDebug() << "waiting" << waitingCount;
+             qDebug() << " seq: " << msg.getSeq() << currentSeq;
             if (onlineStatus == WAITING && msg.getSeq()==currentSeq){
                 if ((--waitingCount)==0){
                     qDebug() << "play";
                     Message reply;
+                    initMessage(reply);
                     reply.setSeq(++currentSeq);
                     reply.setType(nextCommand);
-                    reply.setTimeAt(currentTime);
-                    reply.setCurrentState(state);
                     netController->broadcastToClients(reply);
                     if (nextCommand == PLAY){
                         _play();
@@ -170,6 +203,32 @@ void VideoController::parseMessage(Message &msg)
 
     }
 }
+void VideoController::syncState(const Message &msg){
+    //check if sync
+    if (currentId != msg.getCurrentId()){
+        qDebug() <<"sync current";
+        loadVideo(currentId);
+        return;
+    }
+    if (abs(player.position()-msg.getTimeAt())> maxDelay ){
+         qDebug() <<"sync time";
+        _seekTo(msg.getTimeAt());
+    }
+    if (player.state() != msg.getCurrentState()){
+        qDebug() <<"sync state";
+        if (msg.getCurrentState() == player.PausedState){
+            _pause();
+            _seekTo(msg.getTimeAt());
+        }else if (msg.getCurrentState() == player.PlayingState){
+            _play();
+            _seekTo(msg.getTimeAt());
+        }else if (msg.getCurrentId() == player.StoppedState){
+            player.stop();
+        }
+
+    }
+
+}
 
 void VideoController::displayValue(double value){
     currentTime = value;
@@ -179,12 +238,15 @@ void VideoController::displayValue(double value){
 
 void VideoController::onLoaded(double duration){
 
+    /*
     playerLoaded = true;
     this->duration = duration;
     if (state== PLAYING){
         play();
     }
     qDebug()<< duration;
+    */
+
 }
 
 void VideoController::youtubeApiReady(){
@@ -196,8 +258,8 @@ void VideoController::helloClient(Message &msg)
 {
     msg.setLinks(links);
     msg.setCurrentId(currentId);
-    msg.setTimeAt(currentTime);
-    msg.setCurrentState(state);
+    msg.setTimeAt(player.position());
+    msg.setCurrentState(player.state());
     msg.setSeq(currentSeq);
 
 }
@@ -207,7 +269,32 @@ void VideoController::heartBeat()
    // qDebug() << "heart Beat";
     Message msg;
     initMessage(msg);
+    msg.setType(HEART_BEAT);
     netController->broadcastToClients(msg);
+}
+
+void VideoController::stateChanged(QMediaPlayer::State state)
+{
+
+}
+
+void VideoController::mediaStatusChanged(QMediaPlayer::MediaStatus status)
+{
+    qDebug()<<"media status " << status;
+    if (status == player.EndOfMedia){
+        videoEnded();
+    }else if (status >=3 && status <=6){
+        if (netController->isOnline() && !netController->isHost()){
+            if (BufferMsg.getSeq() > currentSeq){
+                if (BufferMsg.getType() == PRE_PLAY){
+                    //reply ok
+                    replyPrePlay(BufferMsg);
+                }
+            }
+        }
+
+    }
+
 }
 
 
@@ -215,12 +302,37 @@ void VideoController::heartBeat()
 void VideoController::loadVideo(int id)
 {
     setCurrentVideo(id);
+     qDebug()<<"try load";
    // QString arg = QString("loadVideo(\"%1\")").arg(links.find(id).value().second.toHtmlEscaped());
    // qDebug()<< arg;
    // frame->evaluateJavaScript(arg);
-    player.setMedia(QUrl(QDir::currentPath()+"/videos/"+links[id].first+".mp4"));
-    qDebug()<<"load";
+    if (videoExists(links[id].first)){
+        player.setMedia(QUrl(QDir::currentPath()+"/videos/"+links[id].first+".mp4"));
+        nextVid = -1;
+    }else{
+        //download;
+        if (httpOperation != BUFFER){
+            downloadVideo(links[id].second);
+        }
+    }
+
 }
+void VideoController::downloadVideo(QString url){
+    if (downloader->getBusy()){
+        qDebug() << "busy";
+        return;
+    }
+    QString id = extractVid(url);
+    if (id ==""){
+        qDebug() << "invalid";
+        return;
+    }
+    this->url = url;
+    httpOperation=BUFFER;
+    downloader->download(url);
+
+}
+
 void VideoController::addVideo(QString url){
     if (downloader->getBusy()){
         qDebug() << "busy";
@@ -232,39 +344,66 @@ void VideoController::addVideo(QString url){
         return;
     }
     this->url = url;
-    downloader->download(url);
+    httpOperation=ADD_VIDEO;
+    if (currentId == -1){
+        downloader->download(url);
+    }else{
+        downloader->getTitle(url);
+    }
+
 }
+bool VideoController::videoExists(QString title){
+    return QFile::exists(QDir::currentPath() + "/videos/" + title + ".mp4");
+}
+
 void VideoController::onDownloadFinish(bool downloaded, QString title){
 
     if (title != ""){
-        qDebug()<<"title "<<title;
-        if (downloaded){
-            qDebug()<<"added "<<title;
-            links[vid++] = QPair<QString,QString>(title,url);
-            if (currentId == -1){//--if no video--
-                qDebug() << "no video";
-                loadVideo(vid-1);
-            }else{
-                qDebug() << "add to list";
-                emit videoAdded(vid-1, title);
+        if (httpOperation == BUFFER){
+            //do sth
+            if (links.contains(currentId)){
+                if (links[currentId].first == title){
+                    loadVideo(currentId);
+                }
             }
-        }else if (QFile::exists(QDir::currentPath() + "/videos/" + title + ".mp4")){
-            qDebug()<<"added "<<title;
-            links[vid++] = QPair<QString,QString>(title,url);
-            if (currentId == -1){//--if no video--
-                qDebug() << "no video";
-                loadVideo(vid-1);
-            }else{
-                qDebug() << "add to list";
-                emit videoAdded(vid-1, title);
-            }
-
+        }else if(httpOperation == ADD_VIDEO){
+            _addVideo(title);
         }else{
-            //error
+            //ABORT
         }
     }else{
         //error
     }
+    httpOperation=NONE;
+}
+
+void VideoController::positionChanged(qint64 position)
+{
+    if (nextVid ==-1 && (player.duration()-position) < 5000 && links.count()>1){
+        //buffer and set next
+        if (!netController->isOnline()){
+            pickNextVideo();
+            if (!videoExists(links[nextVid].first)){
+                 downloadVideo(links[nextVid].second);
+            }
+        }
+    }
+}
+
+
+void VideoController::_addVideo(QString title){
+    qDebug()<<"title "<<title;
+
+     qDebug()<<"added "<<title;
+     links[vid++] = QPair<QString,QString>(title,url);
+     if (currentId == -1){//--if no video--
+          qDebug() << "no video";
+          loadVideo(vid-1);
+     }else{
+          qDebug() << "add to list";
+          emit videoAdded(vid-1, title);
+     }
+
 }
 
 QString VideoController::extractVid(QString url){
@@ -277,9 +416,9 @@ QString VideoController::extractVid(QString url){
 
 void VideoController::updateTime()
 {
-    qDebug()<<"updateTime";
-    frame->evaluateJavaScript("getCurrentTime()");
-    qDebug()<<"updated";
+   // qDebug()<<"updateTime";
+    //frame->evaluateJavaScript("getCurrentTime()");
+   // qDebug()<<"updated";
 
 }
 
@@ -313,15 +452,17 @@ void VideoController::clientInit(Message &msg)//just connected to server--- init
 {
 
     emit resetPlayList();
+    QDir::setCurrent("client");
     currentSeq = msg.getSeq();
     links = msg.getLinks();
     qDebug() << "init" << links.count();
+    httpOperation=NONE;
     if (links.count() >0){
         currentId = msg.getCurrentId();
         if (currentId!=-1){
             qDebug()<<"load video ";
             loadVideo(currentId);
-            seekTo(msg.timeAt);
+
         }
         for (int vid : links.keys()){
             if (vid == currentId){
@@ -329,10 +470,8 @@ void VideoController::clientInit(Message &msg)//just connected to server--- init
             }
             emit videoAdded(vid,links[vid].first);
         }
-
-
     }
-
+    syncState(msg);
 }
 
 void VideoController::getTitle(QString url){
@@ -359,7 +498,7 @@ void VideoController::_play()
 
     if (player.state()==player.PausedState||player.state()==player.StoppedState){
         player.play();
-        state=PLAYING;
+
     }
 }
 
@@ -367,7 +506,7 @@ void VideoController::_pause()
 {
     if (player.state()==player.PlayingState){
         player.pause();
-        state=PAUSE;
+
     }
 }
 
@@ -376,12 +515,32 @@ void VideoController::_seekTo(qint64 pos)
 
        player.setPosition(pos);
 
-        state=PAUSE;
+
 
 }
 
+void VideoController::pickNextVideo()
+{
+    if (nextVid!=-1){
+        qDebug() << "next Video already picked";
+        return;
+    }
+    for (int key :links.keys()){
+        if (key != currentId){
+            nextVid = key;
+            break;
+        }
+    }
+}
+void VideoController::initMessage(Message &msg)
+{ // for host
+      msg.setCurrentId(currentId);
+      msg.setSeq(currentSeq);
+      msg.setTimeAt(player.position());
+      msg.setCurrentState(player.state());
+}
 void VideoController::suggestPause(){
-    if (state==PAUSE){
+    if (player.state()==player.PausedState){
         return;
     }
     if (netController->isHost()){
@@ -401,18 +560,30 @@ void VideoController::suggestPause(){
     }
 
 }
+void VideoController::suggestSeek(qint64 pos){
 
-void VideoController::initMessage(Message &msg)
-{
-      msg.setCurrentId(currentId);
-      updateTime();
-      msg.setTimeAt(currentTime);
-      msg.setCurrentState(state);
+    if (netController->isHost()){
+        if(netController->clients.count()==0){
+            _seekTo(pos);
+            return;
+        }
+        qDebug()<<"host: seek";
+        Message msg;
+        initMessage(msg);
+        msg.setSeq(++currentSeq);
+        msg.setTimeAt(pos);
+        msg.setType(SEEK);
+         netController->broadcastToClients(msg);
+        _seekTo(pos);
+    }else{
+
+    }
+
 }
 
 void VideoController::suggestPlay()
 {
-    if (state==PLAYING){
+    if (player.state()==player.PlayingState){
         return;
     }
     if (netController->isHost()){//pre play
@@ -422,12 +593,9 @@ void VideoController::suggestPlay()
         }
         qDebug()<<"pre play";
         Message msg;
+        initMessage(msg);
         msg.setSeq(++currentSeq);
-        msg.setCurrentId(currentId);
-        msg.setType(PRE_PLAY);
-        updateTime();
-        msg.setTimeAt(currentTime);
-        msg.setCurrentState(state);
+        msg.setType(PRE_PLAY); 
         waitingCount = netController->clients.count();
         onlineStatus = WAITING;
         nextCommand=PLAY;
@@ -463,7 +631,7 @@ void VideoController::pause(){
 void VideoController::seekTo(qint64 sec){
     if (netController->isOnline()) {
         if (netController->isHost()){
-
+            suggestSeek(sec);
         }else{
 
         }
