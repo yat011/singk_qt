@@ -63,7 +63,7 @@ private:
     void suggestPause();
     void initMessage(Message &msg);
     const int beatInterval = 2000;
-    const qint64 maxDelay = 700;
+    const qint64 maxDelay = 200;
     const double bufferTime = 2;
     QString extractVid(QString url);
     void _addVideo(QString title);
@@ -73,6 +73,7 @@ private:
     void replyPrePlay(Message& msg);
     void suggestSeek(qint64 sec);
     void syncState(const Message &msg);
+    void suggestNext();
 public:
     QMediaPlayer player;
     JsToQtApi * api;

@@ -24,6 +24,16 @@ Message::Message():SerializableObject()
     
 }
 
+int Message::getOptId() const
+{
+    return optId;
+}
+
+void Message::setOptId(int value)
+{
+    optId = value;
+}
+
 int Message::getCurrentState() const
 {
     return currentState;

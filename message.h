@@ -16,6 +16,7 @@ class Message : public SerializableObject
     Q_PROPERTY(int type READ getType WRITE setType)
     Q_PROPERTY(int currentState READ getCurrentState WRITE setCurrentState)
     Q_PROPERTY(QVariantMap links READ getVariantLinks WRITE setVariantLinks)
+    Q_PROPERTY(int optId READ getOptId WRITE setOptId)
 
 private:
     int seq = 0;
@@ -28,6 +29,7 @@ public:
     int currentState = PAUSE;
     qint64 timeAt = -1;
     int currentId = -1;
+    int optId = -1;
     QMap<QString, QVariant > links;
 
     void copyTo(Message & msg){
@@ -59,6 +61,8 @@ public:
     int getCurrentState() const;
     void setCurrentState(int value);
 
+    int getOptId() const;
+    void setOptId(int value);
 };
 
 #endif // MESSAGE_H

@@ -101,16 +101,23 @@ void VideoController::videoEnded()
     qDebug() << "ended";
 
     if (!netController->isOnline()){
-        links.remove(currentId);
-        currentId=-1;
-        if (links.size() >0){
-            if (nextVid!=-1){
-                loadVideo(nextVid);
-            }else{
-                pickNextVideo();
-                loadVideo(nextVid);
-            }
+
+
+          if (nextVid!=-1){
+              loadVideo(nextVid);
+         }else{
+              pickNextVideo();
+              loadVideo(nextVid);
+         }
+
+    }else{
+
+        if (netController->isHost()){
+             suggestNext();
+
         }
+
+
     }
 }
 void VideoController::replyPrePlay( Message &msg){
@@ -150,6 +157,7 @@ void VideoController::parseMessage(Message &msg)
             qDebug() << "client play";
             currentSeq = msg.getSeq();
             _play();
+            //syncState(msg);
         }
 
             break;
@@ -158,6 +166,8 @@ void VideoController::parseMessage(Message &msg)
                 qDebug() << "client pause";
                 currentSeq = msg.getSeq();
                 _pause();
+                //syncState(msg);
+
             }
             break;
         case SEEK:
@@ -165,11 +175,18 @@ void VideoController::parseMessage(Message &msg)
                 qDebug()<< "client seek";
                 currentSeq = msg.getSeq();
                 _seekTo(msg.getTimeAt());
+                //syncState(msg);
+            }
+        case CHANGE_TO:
+            if (currentSeq<msg.getSeq()){
+                qDebug()<< "client change To";
+                currentSeq = msg.getSeq();
+                loadVideo(msg.getCurrentId());
             }
         break;
         case HEART_BEAT:
             if (currentSeq <= msg.getSeq()){
-                qDebug() << "client receive heart beat";
+             //   qDebug() << "client receive heart beat";
                 syncState(msg);
             }
         default:
@@ -294,6 +311,15 @@ void VideoController::mediaStatusChanged(QMediaPlayer::MediaStatus status)
         }
 
     }
+    if (status == player.LoadedMedia){
+        if (netController->isOnline()){
+            if (netController->isHost()){
+                play();
+            }
+        }else{
+            play();
+        }
+    }
 
 }
 
@@ -301,7 +327,12 @@ void VideoController::mediaStatusChanged(QMediaPlayer::MediaStatus status)
 
 void VideoController::loadVideo(int id)
 {
+
     setCurrentVideo(id);
+    if (id == -1){
+        return;
+    }
+
      qDebug()<<"try load";
    // QString arg = QString("loadVideo(\"%1\")").arg(links.find(id).value().second.toHtmlEscaped());
    // qDebug()<< arg;
@@ -488,9 +519,17 @@ void VideoController::getTitle(QString url){
 
 void VideoController::setCurrentVideo(int id)
 {
+    if (currentId != id && currentId != -1){
+        links.remove(currentId);
+        currentId=-1;
+    }
     currentId = id;
     qDebug() << "set current" << currentId;
-    emit videoOnPlay(id, links.find(id).value().first);
+    if (id != -1){
+         emit videoOnPlay(id, links.find(id).value().first);
+    }else{
+        emit videoOnPlay(id,"");
+    }
 }
 
 void VideoController::_play()
@@ -528,9 +567,10 @@ void VideoController::pickNextVideo()
     for (int key :links.keys()){
         if (key != currentId){
             nextVid = key;
-            break;
+            return;
         }
     }
+    nextVid =-1;
 }
 void VideoController::initMessage(Message &msg)
 { // for host
@@ -539,6 +579,26 @@ void VideoController::initMessage(Message &msg)
       msg.setTimeAt(player.position());
       msg.setCurrentState(player.state());
 }
+void VideoController::suggestNext(){
+   if (netController->isHost()){
+
+             if (nextVid!=-1){
+                   loadVideo(nextVid);
+                }else{
+                    pickNextVideo();
+                    loadVideo(nextVid);
+             }
+
+            Message msg;
+            initMessage(msg);
+            msg.setType(CHANGE_TO);
+            msg.setSeq(++currentSeq);
+            netController->broadcastToClients(msg);
+           // suggestPlay();
+   }
+
+}
+
 void VideoController::suggestPause(){
     if (player.state()==player.PausedState){
         return;

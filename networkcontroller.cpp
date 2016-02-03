@@ -107,7 +107,7 @@ void NetworkController::clientRead()
         clientId = msg.getClientId();
         emit messageComeIn(msg);
      }else{
-         qDebug() << "client" << clientId << " receive msg";
+         qDebug() << "client" << clientId << " receive msg " << msg.getType();
          emit messageComeIn(msg);
      }
 
@@ -131,7 +131,11 @@ void NetworkController::broadcastToClients(const Message &msg)
         QDataStream out (&arr, QIODevice::WriteOnly);
         out << msg;
         socket->write(arr);
+        if (socket->flush()){
+           // qDebug() << msg.getType() << " written";
+        }
    }
+
 }
 
 void NetworkController::sendToHost(const Message &msg)
