@@ -95,6 +95,11 @@ void NetworkController::hostRead(){
      QDataStream in(socket->readAll());
      Message msg ;
      in >> msg;
+     if (in.atEnd()){
+         qDebug() <<"no msg";
+     }else{
+         qDebug() << "still hv msg";
+     }
      qDebug() << "host receive msg";
      emit messageComeIn(msg);
 }
@@ -114,7 +119,11 @@ void NetworkController::clientRead()
      QDataStream in(cSocket->readAll());
      Message msg ;
      in >> msg;
-
+      if (in.atEnd()){
+          qDebug() <<"no msg";
+      }else{
+          qDebug() << "still hv msg";
+      }
      if (msg.getType() == HELLO){
         qDebug() << "client Id" << msg.getClientId() << " come";
         clientId = msg.getClientId();
@@ -161,6 +170,7 @@ void NetworkController::sendToHost(const Message &msg)
         QDataStream out (&arr, QIODevice::WriteOnly);
         out << msg;
         cSocket->write(arr);
+
 }
 
 void NetworkController::connectedToHost() //client
