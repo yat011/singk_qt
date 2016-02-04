@@ -70,7 +70,6 @@ void VideoDownloader::getTitle(QString url, int operation)
         process->setProgram(QDir::currentPath()+"/pythonBin/main.exe");
         args<<"-t"<< "1" << url;
     }else {
-        qDebug() << "use python";
         process->setProgram("python");
         args<<QDir::currentPath()+QString("/scripts/main") <<"-t"<< "1" << url;
     }
@@ -91,10 +90,10 @@ void VideoDownloader::onFinished(int exitCode, QProcess::ExitStatus exit)
     QString url = process->property("url").value<QString>();
     int op = process->property("operation").value<int>();
     if (exitCode != 0){
-        qDebug() <<"fail download";
+        qDebug() <<"downloader:no download "<< title;
         emit finish(false,title,url,op);
     }else{
-        qDebug() <<"successly download";
+        qDebug() <<"downloader:successly download " << title;
         emit finish (true,title,url,op);
     }
     process->deleteLater();
@@ -103,19 +102,19 @@ void VideoDownloader::onFinished(int exitCode, QProcess::ExitStatus exit)
 
 void VideoDownloader::onStarted()
 {
-    qDebug() << "stated";
+    qDebug() << "downloader stated";
 }
 
 void VideoDownloader::onStageChange(QProcess::ProcessState newState)
 {
-qDebug() << "stageChange";
-qDebug() << newState;
+    qDebug() << "downloader stageChange "<< newState;
+
 }
 
 void VideoDownloader::onError(QProcess::ProcessError error)
 {
     QProcess* process = (QProcess*) sender();
-    qDebug() << "error :" << error;
+    qDebug() << "downloader error :" << error;
     qDebug() << process->errorString();
     process->deleteLater();
     emit errorSig(process->errorString());
@@ -130,7 +129,6 @@ void VideoDownloader::readyReadStandardOutput()
     QRegExp exp("\\{title:(.*)\\}",Qt::CaseInsensitive);
 
     if (exp.indexIn(msg)!=-1){
-     qDebug() << exp.capturedTexts();
      process->setProperty("title",exp.capturedTexts()[1]);
     }
 

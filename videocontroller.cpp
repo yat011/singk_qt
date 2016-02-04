@@ -366,8 +366,9 @@ void VideoController::loadVideo(int id)
         }
     }
 
-     qDebug()<<"try load";
+     qDebug()<<"try load "<< links[id].first;
     if (videoExists(links[id].first)){
+         qDebug()<<"now load "<< links[id].first;
         if (QSysInfo::macVersion() > 0){
             QString path = QDir::currentPath()+"/videos/"+links[id].first+".mp4";
             player.setMedia(QUrl::fromLocalFile(path));
@@ -378,7 +379,7 @@ void VideoController::loadVideo(int id)
         nextVid = -1;
     }else{
         //download;
-
+        qDebug() <<"video "<<links[id].first<<" not exist";
          downloadVideo(links[id].second);
 
     }
@@ -424,6 +425,7 @@ void VideoController::suggestAddVideo(QString title,QString url){
         Message msg;
         msg.addLink(0,temp);
         msg.setType(ADD_VIDEO);
+        msg.setClientId(netController->getClientId());
         msg.setOptId(0);
         netController->sendToHost(msg);
     }
@@ -551,8 +553,6 @@ void VideoController::_addVideo(QString title,QString url){
         suggestAddVideo(title,url);
 
     }else{
-
-        qDebug()<<"title "<<title;
 
          qDebug()<<"added "<<title;
          links[vid++] = QPair<QString,QString>(title,url);

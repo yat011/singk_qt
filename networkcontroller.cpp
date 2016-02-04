@@ -85,7 +85,7 @@ void NetworkController::newConnection()
         out << msg;
 
         socket->write(arr);
-
+        socket->flush();
 
 
 }
@@ -170,6 +170,9 @@ void NetworkController::sendToHost(const Message &msg)
         QDataStream out (&arr, QIODevice::WriteOnly);
         out << msg;
         cSocket->write(arr);
+        if (cSocket->flush()){
+           // qDebug() << msg.getType() << " written";
+        }
 
 }
 
