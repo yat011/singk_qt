@@ -48,6 +48,7 @@ void NetworkController::startServer(int port)
      {
             qDebug() << "Could not start server";
             QMessageBox::critical(0,"Network err", server->errorString());
+            emit networkError();
             server->deleteLater();
         }
         else
@@ -98,12 +99,6 @@ void NetworkController::hostRead(){
      QDataStream in(socket->readAll());
      Message msg ;
      in >> msg;
-     if (in.atEnd()){
-         qDebug() <<"no msg";
-     }else{
-         qDebug() << "still hv msg";
-     }
-     qDebug() << "host receive msg";
      emit messageComeIn(msg);
 }
 
@@ -112,6 +107,7 @@ void NetworkController::onError(QAbstractSocket::SocketError err)
     QTcpSocket *socket = (QTcpSocket*) sender();
     qDebug()<<"net err" << err;
     QMessageBox::critical(0,"Network err", socket->errorString());
+    emit networkError();
 
 }
 

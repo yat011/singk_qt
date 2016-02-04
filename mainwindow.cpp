@@ -55,6 +55,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect (video->netController,SIGNAL(consoleMessage(QString)),this,SLOT(showConsoleMessage(QString)));
     connect(video->netController,SIGNAL(clientInitComplete()),this,SLOT(clientInitComplete()));
     connect(video,SIGNAL(resetPlayList()),this,SLOT(resetList()));
+    connect(video->netController,SIGNAL(networkError()),this,SLOT(networkError()));
     //connect(videoWidget,SIGNAL(mouseDoubleClickEvent(QMouseEvent * )),this, SLOT(onDoubleClicked(QMoustEvent*)));
 
 }
@@ -115,7 +116,7 @@ void MainWindow::on_addBtn_clicked()
 
 void MainWindow::showOnlineDialog()
 {
-    if (!video->netController->isOnline()){
+    if (!video->netController->isOnline()&&!lock){
         if (this->dialog == 0){
             dialog = new OnlineDialog(this);
 
@@ -184,7 +185,10 @@ void MainWindow::hostClicked()
 
 void MainWindow::clientClicked()
 {
+
     qDebug() << "try connect";
+    lock=true;
+    ui->actionOnline->setText("Offline");
     video->netController->connectToHost(dialog->getHostValue(),dialog->getPortValue().toInt());
     dialog->hide();
 }
@@ -213,7 +217,6 @@ void MainWindow::online(bool host)
     }else{
         setWindowTitle("online(client)");
         showConsoleMessage("wait for init");
-        lock=true;
     }
     ui->actionOnline->setText("Offline");
 }
@@ -241,4 +244,10 @@ void MainWindow::clientInitComplete()
 {
     showConsoleMessage("init completed");
     lock=false;
+}
+
+void MainWindow::networkError()
+{
+    lock=false;
+    ui->actionOnline->setText("Online");
 }

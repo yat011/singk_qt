@@ -110,6 +110,9 @@ void VideoDownloader::onFinished(int exitCode, QProcess::ExitStatus exit)
     QString title = process->property("title").value<QString>();
     QString url = process->property("url").value<QString>();
     int op = process->property("operation").value<int>();
+    if (downloadingMap.contains(url)){
+        downloadingMap.remove(url);
+    }
     if (exitCode != 0){
         qDebug() <<"downloader:no download "<< title;
         emit finish(false,title,url,op);
@@ -117,9 +120,7 @@ void VideoDownloader::onFinished(int exitCode, QProcess::ExitStatus exit)
         qDebug() <<"downloader:successly download " << title;
         emit finish (true,title,url,op);
     }
-    if (downloadingMap.contains(url)){
-        downloadingMap.remove(url);
-    }
+
 
     process->deleteLater();
 

@@ -45,6 +45,7 @@ signals:
     void messageComeIn(Message &msg);
     void clientInitComplete();
     void consoleMessage(QString msg);
+    void networkError();
 private slots:
     //----server
     void newConnection();

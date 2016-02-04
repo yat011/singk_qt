@@ -267,10 +267,8 @@ void VideoController::onLoaded(double duration){
 void VideoController::helloClient(Message &msg)
 {
     msg.setLinks(links);
-    msg.setCurrentId(currentId);
-    msg.setTimeAt(player.position());
-    msg.setCurrentState(player.state());
-    msg.setSeq(currentSeq);
+    initMessage(msg);
+
 
     emit consoleRead("client"+QString::number(msg.getClientId())+" joined");
 }
@@ -341,14 +339,19 @@ void VideoController::loadVideo(int id)
      QString yid = VideoDownloader::extractVid(links[id].second);
      qDebug() << yid;
     if (videoExists(yid)){
-         qDebug()<<"now load "<< links[id].first;
-        if (QSysInfo::macVersion() > 0){
-            QString path = QDir::currentPath()+"/videos/"+yid+".mp4";
-            player.setMedia(QUrl::fromLocalFile(path));
+        if (!downloader->downloading(links[id].second)){
+            qDebug()<<"now load "<< links[id].first;
+            if (QSysInfo::macVersion() > 0){
+                QString path = QDir::currentPath()+"/videos/"+yid+".mp4";
+                player.setMedia(QUrl::fromLocalFile(path));
+            }else{
+                player.setMedia(QUrl(QDir::currentPath()+"/videos/"+yid+".mp4"));
+            }
+            nextVid = -1;
         }else{
-            player.setMedia(QUrl(QDir::currentPath()+"/videos/"+yid+".mp4"));
+            qDebug() << "wait for download";
+            emit consoleRead("wait for downloading");
         }
-        nextVid = -1;
     }else{
         //download;
         qDebug() <<"video "<<links[id].first<<" not exist";
@@ -405,6 +408,7 @@ void VideoController::suggestAddVideo(QString title,QString url){
         msg.setClientId(netController->getClientId());
         msg.setOptId(0);
         netController->sendToHost(msg);
+        emit consoleRead("wait for others ready");
     }
 
 
@@ -576,6 +580,7 @@ void VideoController::clientInit(Message &msg)//just connected to server--- init
 {
 
     emit resetPlayList();
+    currentId = -1;
     currentSeq = msg.getSeq();
     links = msg.getLinks();
     qDebug() << "init" << links.count();
@@ -780,12 +785,14 @@ void VideoController::suggestPlay(int clientId)
         waitTimer.start(waitTime);
         msg.copyTo(BufferMsg);
         netController->broadcastToClients(msg);
+        emit consoleRead("wait for client ready");
 
     }else{
         Message msg;
         msg.setType(PLAY);
         msg.setClientId(netController->getClientId());
         netController->sendToHost(msg);
+        emit consoleRead("wait for others ready");
     }
 }
 void VideoController::play(){

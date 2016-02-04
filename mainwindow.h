@@ -59,6 +59,7 @@ private slots:
     void on_fullScreenBtn_clicked();
     void resetList();
     void clientInitComplete();
+    void networkError();
 private:
     bool lock=false;
     bool pulling = false;
