@@ -61,6 +61,7 @@ private slots:
     void resetList();
 
 private:
+    bool pulling = false;
     Ui::MainWindow *ui;
     QVideoWidget * videoWidget;
     QStandardItemModel * model;

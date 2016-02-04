@@ -77,11 +77,13 @@ void MainWindow::on_pauseBtn_clicked()
 void MainWindow::on_timeSlider_sliderReleased()
 {
     video->seekTo(ui->timeSlider->value());
+    pulling =false;
 }
 
 void MainWindow::on_timeSlider_sliderPressed()
 {
     //video->pause();
+    pulling = true;
 }
 
 void MainWindow::on_addBtn_clicked()
@@ -142,7 +144,8 @@ void MainWindow::videoOnPlay(int id, QString title)
 void MainWindow::positionChanged(qint64 pos)
 {
     //qDebug()<<pos;
-    ui->timeSlider->setValue(pos);
+    if (!pulling)
+        ui->timeSlider->setValue(pos);
 }
 
 void MainWindow::durationChanged(qint64 duration)

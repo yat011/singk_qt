@@ -8,8 +8,19 @@
 #include <QRegExp>
 #include <iostream>
 #include <QDir>
+#include <QCoreApplication>
 VideoController::VideoController(QVideoWidget *view, QObject *parent) : QObject(parent)
 {
+    if (QSysInfo::macVersion()>0){
+        QDir dir = QDir(QCoreApplication::applicationDirPath());
+        dir.cd("../../..");
+        qDebug() <<dir.absolutePath();
+        QDir::setCurrent(dir.absolutePath());
+    }
+
+  // QDir::setCurrent(QDir::homePath()+"/videoSync");
+
+
     videoWidget = view;
 
 
@@ -63,6 +74,7 @@ VideoController::VideoController(QVideoWidget *view, QObject *parent) : QObject(
     connect(&onlineTimer,SIGNAL(timeout()),this,SLOT(heartBeat()));
     connect(&waitTimer,SIGNAL(timeout()),this,SLOT(applyAction()));
     connect(downloader,SIGNAL(errorSig(QString)),this,SLOT(downloaderError(QString)));
+
 }
 
 
@@ -234,15 +246,18 @@ void VideoController::syncState(const Message &msg){
     //check if sync
     if (currentId != msg.getCurrentId()){
         qDebug() <<"sync current";
+        emit consoleRead("sync video with host");
         loadVideo(currentId);
         return;
     }
     if (abs(player.position()-msg.getTimeAt())> maxDelay ){
          qDebug() <<"sync time";
+         emit consoleRead("sync time with host");
         _seekTo(msg.getTimeAt());
     }
     if (player.state() != msg.getCurrentState()){
         qDebug() <<"sync state";
+        emit consoleRead("sync player state with home");
         if (msg.getCurrentState() == player.PausedState){
             _pause();
             _seekTo(msg.getTimeAt());
@@ -306,6 +321,9 @@ void VideoController::stateChanged(QMediaPlayer::State state)
 void VideoController::mediaStatusChanged(QMediaPlayer::MediaStatus status)
 {
     qDebug()<<"media status " << status;
+    if (status == player.InvalidMedia){
+        qDebug() << player.errorString();
+    }
     if (status == player.EndOfMedia){
         videoEnded();
     }else if (status >=3 && status <=6){
@@ -336,6 +354,7 @@ void VideoController::mediaStatusChanged(QMediaPlayer::MediaStatus status)
 void VideoController::loadVideo(int id)
 {
 
+
     if (!links.contains(id)&& id != -1){
         qDebug() << "doesnt not contain video " << id;
         return;
@@ -349,7 +368,13 @@ void VideoController::loadVideo(int id)
 
      qDebug()<<"try load";
     if (videoExists(links[id].first)){
-        player.setMedia(QUrl(QDir::currentPath()+"/videos/"+links[id].first+".mp4"));
+        if (QSysInfo::macVersion() > 0){
+            QString path = QDir::currentPath()+"/videos/"+links[id].first+".mp4";
+            player.setMedia(QUrl::fromLocalFile(path));
+        }else{
+            player.setMedia(QUrl(QDir::currentPath()+"/videos/"+links[id].first+".mp4"));
+            qDebug() << QDir::currentPath()+"/videos/"+links[id].first+".mp4";
+        }
         nextVid = -1;
     }else{
         //download;
@@ -494,6 +519,7 @@ void VideoController::onDownloadFinish(bool downloaded, QString title, QString u
         }
     }else{
         //error
+        emit consoleRead("error: acquiring video information fail");
     }
 
 }

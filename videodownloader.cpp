@@ -2,10 +2,10 @@
 #include <QDebug>
 #include <QDir>
 #include <QProcess>
-
+#include <iostream>
+#include <QApplication>
 VideoDownloader::VideoDownloader(QObject *parent) : QObject(parent)
 {
-
 
 }
 
@@ -21,7 +21,6 @@ void VideoDownloader::download(QString url,  int operation)
         }
     }*/
 
-
    QProcess* process = new QProcess(this);
     process->setProperty("title","");
     process->setProperty("url",url);
@@ -30,15 +29,20 @@ void VideoDownloader::download(QString url,  int operation)
     if (!QDir("videos").exists()){
         QDir().mkdir("videos");
     }
-
-    args<<"-e" <<"mp4" <<"-r" <<"360p" << "-p" << "videos/" << url;
+    if (QSysInfo::WindowsVersion >0 ){
+        process->setProgram(QDir::currentPath()+"/pythonBin/main.exe");
+        args<<"-e" <<"mp4" <<"-r" <<"360p" << "-p" << "videos/" << url;
+    }else {
+        qDebug() << "use python";
+        process->setProgram("python");
+        args<<QDir::currentPath() + QString("/scripts/main") <<"-e" <<"mp4" <<"-r" <<"360p" << "-p" << "videos/" << url;
+    }
     connect(process,SIGNAL(finished(int,QProcess::ExitStatus)), this, SLOT(onFinished(int,QProcess::ExitStatus)));
     connect(process,SIGNAL(started()), this, SLOT(onStarted()));
     connect(process,SIGNAL(stateChanged(QProcess::ProcessState)), this, SLOT(onStageChange(QProcess::ProcessState)));
     connect(process,SIGNAL(error(QProcess::ProcessError)),this,SLOT(onError(QProcess::ProcessError)));
     connect(process,SIGNAL(readyRead()),this,SLOT(readyReadStandardOutput()));
     process->setArguments(args);
-    process->setProgram(QDir::currentPath()+"/pythonBin/main.exe");
     process->start();
 }
 
@@ -62,15 +66,20 @@ void VideoDownloader::getTitle(QString url, int operation)
     if (!QDir("videos").exists()){
         QDir().mkdir("videos");
     }
-
-    args<<"-t"<< "1" << url;
+    if (QSysInfo::WindowsVersion >0 ){
+        process->setProgram(QDir::currentPath()+"/pythonBin/main.exe");
+        args<<"-t"<< "1" << url;
+    }else {
+        qDebug() << "use python";
+        process->setProgram("python");
+        args<<QDir::currentPath()+QString("/scripts/main") <<"-t"<< "1" << url;
+    }
     connect(process,SIGNAL(finished(int,QProcess::ExitStatus)), this, SLOT(onFinished(int,QProcess::ExitStatus)));
     connect(process,SIGNAL(started()), this, SLOT(onStarted()));
     connect(process,SIGNAL(stateChanged(QProcess::ProcessState)), this, SLOT(onStageChange(QProcess::ProcessState)));
     connect(process,SIGNAL(error(QProcess::ProcessError)),this,SLOT(onError(QProcess::ProcessError)));
     connect(process,SIGNAL(readyRead()),this,SLOT(readyReadStandardOutput()));
     process->setArguments(args);
-    process->setProgram(QDir::homePath()+"/Documents/pythonBin/main.exe");
     process->start();
 
 }
@@ -116,6 +125,7 @@ void VideoDownloader::readyReadStandardOutput()
 {
     QProcess* process = (QProcess*) sender();
     QString msg=  QString(process->readAll());
+    qDebug() << msg;
 
     QRegExp exp("\\{title:(.*)\\}",Qt::CaseInsensitive);
 
