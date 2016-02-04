@@ -1,6 +1,7 @@
 #ifndef VIDEODOWNLOADER_H
 #define VIDEODOWNLOADER_H
 
+#include <QMap>
 #include <QObject>
 #include <QProcess>
 
@@ -11,13 +12,13 @@ private :
   //  QProcess *process;
    // bool busy = false;
    // QString title = "";
-
+    QMap<QString,bool> downloadingMap;
 public:
     explicit VideoDownloader(QObject *parent = 0);
     void download(QString url, int operation);
     void getTitle(QString url, int operation);
-
-
+    static QString extractVid(QString url);
+    bool downloading(QString url);
 
 signals:
     void finish(bool result, QString title,QString url, int operation);

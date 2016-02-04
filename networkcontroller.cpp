@@ -1,7 +1,7 @@
 #include "networkcontroller.h"
 #include "clienthandler.h"
 #include "message.h"
-
+#include <QMessageBox>
 int NetworkController::getClientId() const
 {
     return clientId;
@@ -47,6 +47,7 @@ void NetworkController::startServer(int port)
     if(!server->listen(QHostAddress::Any, port))
      {
             qDebug() << "Could not start server";
+            QMessageBox::critical(0,"Network err", server->errorString());
             server->deleteLater();
         }
         else
@@ -74,6 +75,8 @@ void NetworkController::newConnection()
         socket->setProperty("id",socket->socketDescriptor());
         connect(socket,SIGNAL(disconnected()),this,SLOT(clientDisconnected()));
         connect(socket,SIGNAL(readyRead()),this,SLOT(hostRead()));
+
+
         clients.insert(socket->socketDescriptor(),socket);
         //welcome msg
         Message msg;
@@ -104,6 +107,14 @@ void NetworkController::hostRead(){
      emit messageComeIn(msg);
 }
 
+void NetworkController::onError(QAbstractSocket::SocketError err)
+{
+    QTcpSocket *socket = (QTcpSocket*) sender();
+    qDebug()<<"net err" << err;
+    QMessageBox::critical(0,"Network err", socket->errorString());
+
+}
+
 void NetworkController::clientDisconnected()
 {
     QTcpSocket * socket = (QTcpSocket*) sender();
@@ -119,17 +130,13 @@ void NetworkController::clientRead()
      QDataStream in(cSocket->readAll());
      Message msg ;
      in >> msg;
-      if (in.atEnd()){
-          qDebug() <<"no msg";
-      }else{
-          qDebug() << "still hv msg";
-      }
+
      if (msg.getType() == HELLO){
         qDebug() << "client Id" << msg.getClientId() << " come";
         clientId = msg.getClientId();
         emit messageComeIn(msg);
+        emit clientInitComplete();
      }else{
-         qDebug() << "client" << clientId << " receive msg " << msg.getType();
          emit messageComeIn(msg);
      }
 
@@ -146,8 +153,11 @@ void NetworkController::connectToHost(QString address, int port)
         return;
     }
     cSocket = new QTcpSocket(this);
-    cSocket->connectToHost(address,port);
     connect(cSocket, SIGNAL(connected()),this,SLOT(connectedToHost()));
+    connect(cSocket,SIGNAL(error(QAbstractSocket::SocketError)),this,SLOT(onError(QAbstractSocket::SocketError)));
+
+    cSocket->connectToHost(address,port);
+
 }
 
 void NetworkController::broadcastToClients(const Message &msg)

@@ -67,7 +67,6 @@ private:
     const int beatInterval = 2000;
     const qint64 maxDelay = 200;
     const int waitTime = 4000;
-    QString extractVid(QString url);
     void _addVideo(QString title, QString url);
     void downloadVideo(QString url);
     bool playerLoaded = false;

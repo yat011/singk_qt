@@ -21,21 +21,25 @@ void VideoDownloader::download(QString url,  int operation)
         }
     }*/
 
+    if (downloadingMap.contains(url)){
+        qDebug() <<"downloading";
+    }
    QProcess* process = new QProcess(this);
     process->setProperty("title","");
     process->setProperty("url",url);
     process->setProperty("operation",operation);
+    QString vid = extractVid(url);
     QStringList args;
     if (!QDir("videos").exists()){
         QDir().mkdir("videos");
     }
-    if (QSysInfo::WindowsVersion >0 ){
+    if (QSysInfo::WindowsVersion != QSysInfo::WV_None ){
         process->setProgram(QDir::currentPath()+"/pythonBin/main.exe");
-        args<<"-e" <<"mp4" <<"-r" <<"360p" << "-p" << "videos/" << url;
+        args<<"-e" <<"mp4" <<"-r" <<"360p" << "-p" << "videos/"<< "-f" << vid << url;
     }else {
         qDebug() << "use python";
         process->setProgram("python");
-        args<<QDir::currentPath() + QString("/scripts/main") <<"-e" <<"mp4" <<"-r" <<"360p" << "-p" << "videos/" << url;
+        args<<QDir::currentPath() + QString("/scripts/main") <<"-e" <<"mp4" <<"-r" <<"360p" << "-p" << "videos/" << "-f" << vid<< url;
     }
     connect(process,SIGNAL(finished(int,QProcess::ExitStatus)), this, SLOT(onFinished(int,QProcess::ExitStatus)));
     connect(process,SIGNAL(started()), this, SLOT(onStarted()));
@@ -43,6 +47,7 @@ void VideoDownloader::download(QString url,  int operation)
     connect(process,SIGNAL(error(QProcess::ProcessError)),this,SLOT(onError(QProcess::ProcessError)));
     connect(process,SIGNAL(readyRead()),this,SLOT(readyReadStandardOutput()));
     process->setArguments(args);
+    downloadingMap[url]=true;
     process->start();
 }
 
@@ -58,6 +63,8 @@ void VideoDownloader::getTitle(QString url, int operation)
         }
     }
     */
+
+
     QProcess* process = new QProcess(this);
     process->setProperty("title","");
     process->setProperty("url",url);
@@ -66,7 +73,7 @@ void VideoDownloader::getTitle(QString url, int operation)
     if (!QDir("videos").exists()){
         QDir().mkdir("videos");
     }
-    if (QSysInfo::WindowsVersion >0 ){
+    if (QSysInfo::WindowsVersion != QSysInfo::WV_None ){
         process->setProgram(QDir::currentPath()+"/pythonBin/main.exe");
         args<<"-t"<< "1" << url;
     }else {
@@ -83,6 +90,20 @@ void VideoDownloader::getTitle(QString url, int operation)
 
 }
 
+QString VideoDownloader::extractVid(QString url)
+{
+    QRegExp exp("v=([^&]*)&?.*$",Qt::CaseInsensitive);
+    exp.indexIn(url);
+
+    qDebug() << exp.capturedTexts();
+    return exp.capturedTexts()[1];
+}
+
+bool VideoDownloader::downloading(QString url)
+{
+   return downloadingMap.contains(url);
+}
+
 void VideoDownloader::onFinished(int exitCode, QProcess::ExitStatus exit)
 {
     QProcess* process = (QProcess*) sender();
@@ -96,6 +117,10 @@ void VideoDownloader::onFinished(int exitCode, QProcess::ExitStatus exit)
         qDebug() <<"downloader:successly download " << title;
         emit finish (true,title,url,op);
     }
+    if (downloadingMap.contains(url)){
+        downloadingMap.remove(url);
+    }
+
     process->deleteLater();
 
 }
@@ -114,8 +139,11 @@ void VideoDownloader::onStageChange(QProcess::ProcessState newState)
 void VideoDownloader::onError(QProcess::ProcessError error)
 {
     QProcess* process = (QProcess*) sender();
-    qDebug() << "downloader error :" << error;
-    qDebug() << process->errorString();
+    qDebug() << "downloader error :" << process->errorString();
+    QString url = process->property("url").value<QString>();
+    if (downloadingMap.contains(url)){
+        downloadingMap.remove(url);
+    }
     process->deleteLater();
     emit errorSig(process->errorString());
 }

@@ -43,6 +43,8 @@ signals:
     void offline();
     void serverStarted();
     void messageComeIn(Message &msg);
+    void clientInitComplete();
+    void consoleMessage(QString msg);
 private slots:
     //----server
     void newConnection();
@@ -54,6 +56,7 @@ private slots:
     void clientRead();
     void clientSend(QString str);
     void hostRead();
+    void onError(QAbstractSocket::SocketError err);
 };
 
 #endif // NETWORKCONTROLLER_H

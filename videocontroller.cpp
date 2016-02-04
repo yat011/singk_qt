@@ -11,52 +11,23 @@
 #include <QCoreApplication>
 VideoController::VideoController(QVideoWidget *view, QObject *parent) : QObject(parent)
 {
-    if (QSysInfo::macVersion()>0){
+
+
+    if (QSysInfo::macVersion()!= QSysInfo::MV_None){
+        qDebug() << "mac";
         QDir dir = QDir(QCoreApplication::applicationDirPath());
         dir.cd("../../..");
         qDebug() <<dir.absolutePath();
         QDir::setCurrent(dir.absolutePath());
+    }else{
+
     }
-
-  // QDir::setCurrent(QDir::homePath()+"/videoSync");
-
 
     videoWidget = view;
 
 
     player.setVideoOutput(view);
 
-    /*
-    QFile file("C:\\Users\\at\\Documents\\qt\\singk\\tmpl.html");
-    if (!file.open(QIODevice::ReadOnly)){
-
-    }
-    QString str = file.readAll();
-    downloader = new VideoDownloader();
-
-    //webView->setHtml(str);
-
-    frame= webView->page()->mainFrame();
-    //webView->setUrl(QUrl("https://www.youtube.com/watch?v=UppBiK8xpeg"));
-
-
-    api = new JsToQtApi();
-    connect(frame,
-            SIGNAL(javaScriptWindowObjectCleared()),
-            this, SLOT(attachWindowObject()));
-    connect(api,
-            SIGNAL(timeChanged(double)),
-            this, SLOT(displayValue(double)));
-    connect(api,
-            SIGNAL(loaded(double)),
-            this, SLOT(onLoaded(double)));
-    connect(api,
-            SIGNAL(youtubeApiReady()),
-            this, SLOT(youtubeApiReady()));
-    connect(api,
-            SIGNAL(ended()),
-            this, SLOT(videoEnded()));
-            */
 
     downloader= new VideoDownloader();
     connect(downloader,SIGNAL(finish(bool,QString,QString,int)),this,SLOT(onDownloadFinish(bool,QString,QString,int)));
@@ -200,7 +171,7 @@ void VideoController::parseMessage(Message &msg)
             break;
         case BUFFER:
 
-            if (!videoExists(links[msg.getOptId()].first)){
+            if (!videoExists(VideoDownloader::extractVid(links[msg.getOptId()].second))){
                 qDebug() << "client buffer " << links[msg.getOptId()].first;
                  downloadVideo(links[msg.getOptId()].second);
             }
@@ -250,8 +221,8 @@ void VideoController::syncState(const Message &msg){
         loadVideo(currentId);
         return;
     }
-    if (abs(player.position()-msg.getTimeAt())> maxDelay ){
-         qDebug() <<"sync time";
+    if (abs(player.position()-msg.getTimeAt())> maxDelay && playable()){
+         qDebug() <<"sync time" << msg.getTimeAt() << " " << player.position();
          emit consoleRead("sync time with host");
         _seekTo(msg.getTimeAt());
     }
@@ -367,14 +338,15 @@ void VideoController::loadVideo(int id)
     }
 
      qDebug()<<"try load "<< links[id].first;
-    if (videoExists(links[id].first)){
+     QString yid = VideoDownloader::extractVid(links[id].second);
+     qDebug() << yid;
+    if (videoExists(yid)){
          qDebug()<<"now load "<< links[id].first;
         if (QSysInfo::macVersion() > 0){
-            QString path = QDir::currentPath()+"/videos/"+links[id].first+".mp4";
+            QString path = QDir::currentPath()+"/videos/"+yid+".mp4";
             player.setMedia(QUrl::fromLocalFile(path));
         }else{
-            player.setMedia(QUrl(QDir::currentPath()+"/videos/"+links[id].first+".mp4"));
-            qDebug() << QDir::currentPath()+"/videos/"+links[id].first+".mp4";
+            player.setMedia(QUrl(QDir::currentPath()+"/videos/"+yid+".mp4"));
         }
         nextVid = -1;
     }else{
@@ -387,7 +359,12 @@ void VideoController::loadVideo(int id)
 }
 void VideoController::downloadVideo(QString url){
 
-    QString id = extractVid(url);
+    if (downloader->downloading(url)){
+        qDebug() << "downloader downloading";
+        return;
+    }
+
+    QString id = VideoDownloader::extractVid(url);
     if (id ==""){
         qDebug() << "invalid";
         return;
@@ -484,7 +461,7 @@ void VideoController::applyAction()
 void VideoController::addVideo(QString url){
 
 
-        QString id = extractVid(url);
+        QString id = VideoDownloader::extractVid(url);
         if (id ==""){
             qDebug() << "invalid";
             return;
@@ -537,7 +514,7 @@ void VideoController::positionChanged(qint64 position)
         //buffer and set next
         if (!netController->isOnline()){
             pickNextVideo();
-            if (!videoExists(links[nextVid].first)){
+            if (!videoExists(VideoDownloader::extractVid(links[nextVid].second))){
                  downloadVideo(links[nextVid].second);
             }
         }else{
@@ -567,13 +544,6 @@ void VideoController::_addVideo(QString title,QString url){
     }
 }
 
-QString VideoController::extractVid(QString url){
-    QRegExp exp("v=([^&]*)&?.*$",Qt::CaseInsensitive);
-    exp.indexIn(url);
-
-    qDebug() << exp.capturedTexts();
-    return exp.capturedTexts()[1];
-}
 
 void VideoController::updateTime()
 {
@@ -632,7 +602,7 @@ void VideoController::clientInit(Message &msg)//just connected to server--- init
 void VideoController::setCurrentVideo(int id)
 {
     if (currentId != id && currentId != -1){
-        destroyer.pushVideo(links[currentId].first);
+        destroyer.pushVideo(VideoDownloader::extractVid(links[currentId].second));
         links.remove(currentId);
         //do garbage collection
 
@@ -705,7 +675,7 @@ void VideoController::suggestBuffer(){
         msg.setType(BUFFER);
         netController->broadcastToClients(msg);
 
-        if (!videoExists(links[nextVid].first)){
+        if (!videoExists(VideoDownloader::extractVid(links[nextVid].second))){
              downloadVideo(links[nextVid].second);
         }
     }

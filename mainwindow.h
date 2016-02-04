@@ -57,10 +57,10 @@ private slots:
     void online(bool host);
     void offline();
     void on_fullScreenBtn_clicked();
-    void onDoubleClicked(QMouseEvent* event);
     void resetList();
-
+    void clientInitComplete();
 private:
+    bool lock=false;
     bool pulling = false;
     Ui::MainWindow *ui;
     QVideoWidget * videoWidget;

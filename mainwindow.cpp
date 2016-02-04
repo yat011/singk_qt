@@ -52,6 +52,8 @@ MainWindow::MainWindow(QWidget *parent) :
     connect (video,SIGNAL(consoleRead(QString)),this,SLOT(showConsoleMessage(QString)));
     connect(video->netController,SIGNAL(onlineSig(bool)),this,SLOT(online(bool)));
     connect(video->netController,SIGNAL(offline()),this,SLOT(offline()));
+    connect (video->netController,SIGNAL(consoleMessage(QString)),this,SLOT(showConsoleMessage(QString)));
+    connect(video->netController,SIGNAL(clientInitComplete()),this,SLOT(clientInitComplete()));
     connect(video,SIGNAL(resetPlayList()),this,SLOT(resetList()));
     //connect(videoWidget,SIGNAL(mouseDoubleClickEvent(QMouseEvent * )),this, SLOT(onDoubleClicked(QMoustEvent*)));
 
@@ -64,30 +66,42 @@ MainWindow::~MainWindow()
 
 void MainWindow::on_playBtn_clicked()
 {
+    if (lock){
+        return;
+    }
     video->play();
 }
 
 
 void MainWindow::on_pauseBtn_clicked()
 {
+    if (lock){
+        return;
+    }
     video->pause();
 }
 
 
 void MainWindow::on_timeSlider_sliderReleased()
 {
-    video->seekTo(ui->timeSlider->value());
+    if (!lock){
+        video->seekTo(ui->timeSlider->value());
+    }
     pulling =false;
 }
 
 void MainWindow::on_timeSlider_sliderPressed()
 {
+
     //video->pause();
     pulling = true;
 }
 
 void MainWindow::on_addBtn_clicked()
 {
+    if (lock){
+        return;
+    }
     if (ui->linkEdit->text().trimmed()=="c"){
        video->netController->connectToHost("localhost",1234);
         return;
@@ -143,7 +157,7 @@ void MainWindow::videoOnPlay(int id, QString title)
 
 void MainWindow::positionChanged(qint64 pos)
 {
-    //qDebug()<<pos;
+
     if (!pulling)
         ui->timeSlider->setValue(pos);
 }
@@ -198,6 +212,8 @@ void MainWindow::online(bool host)
         setWindowTitle("online(host)");
     }else{
         setWindowTitle("online(client)");
+        showConsoleMessage("wait for init");
+        lock=true;
     }
     ui->actionOnline->setText("Offline");
 }
@@ -213,13 +229,16 @@ void MainWindow::on_fullScreenBtn_clicked()
     videoWidget->setFullScreen(true);
 }
 
-void MainWindow::onDoubleClicked(QMouseEvent *event)
-{
-    qDebug()<<"dc";
-}
+
 
 void MainWindow::resetList()
 {
     model->clear();
     this->itemMap.clear();
+}
+
+void MainWindow::clientInitComplete()
+{
+    showConsoleMessage("init completed");
+    lock=false;
 }
