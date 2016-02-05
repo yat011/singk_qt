@@ -1,17 +1,21 @@
 #ifndef USER_H
 #define USER_H
+#include "QObject"
 
-#include <QObject>
-
-class User : public QObject
+#include <QDataStream>
+class User
 {
-    Q_OBJECT
-public:
-    explicit User(QObject *parent = 0);
 
+public:
+    User();
+    int id =0;
+    qint64 ping =0;
+    int state =0;
 signals:
 
 public slots:
 };
-
+QDataStream &operator<<(QDataStream &ds, const User &obj);
+QDataStream &operator>>(QDataStream &ds, User &obj) ;
+Q_DECLARE_METATYPE(User)
 #endif // USER_H

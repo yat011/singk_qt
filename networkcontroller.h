@@ -29,8 +29,8 @@ public:
     void startServer(int port);
     void connectToHost(QString address, int port);
 
-    void broadcastToClients(const Message &msg);
-    void sendToHost(const Message &msg);
+    void broadcastToClients( Message &msg);
+    void sendToHost( Message &msg);
 
     int getClientId() const;
     void setClientId(int value);
@@ -55,7 +55,6 @@ private slots:
     void connectedToHost();
     void onDisconnectedFromHost();
     void clientRead();
-    void clientSend(QString str);
     void hostRead();
     void onError(QAbstractSocket::SocketError err);
 };

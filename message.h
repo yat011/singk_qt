@@ -4,7 +4,9 @@
 #include "serializableobject.h"
 #include <QPair>
 #include "definition.h"
-
+#include  "user.h"
+#include <QList>
+typedef QList<User> UserList;
 class Message : public SerializableObject
 {
     Q_OBJECT
@@ -17,10 +19,12 @@ class Message : public SerializableObject
     Q_PROPERTY(int currentState READ getCurrentState WRITE setCurrentState)
     Q_PROPERTY(QVariantMap links READ getVariantLinks WRITE setVariantLinks)
     Q_PROPERTY(int optId READ getOptId WRITE setOptId)
-
+    Q_PROPERTY(qint64 timeStamp READ getTimeStamp WRITE setTimeStamp)
+    Q_PROPERTY(qint64 timeStamp READ getTimeStamp WRITE setTimeStamp)
+    Q_PROPERTY(UserList users READ getUsers WRITE setUsers)
 private:
     int seq = 0;
-
+    qint64 timeStamp =0;
 public:
 
     Message();
@@ -31,6 +35,7 @@ public:
     int currentId = -1;
     int optId = -1;
     QMap<QString, QVariant > links;
+    QList<User> users;
 
     void copyTo(Message & msg){
         msg.setSeq(seq);
@@ -66,6 +71,10 @@ public:
 
     int getOptId() const;
     void setOptId(int value);
+    qint64 getTimeStamp() const;
+    void setTimeStamp(const qint64 &value);
+    QList<User> getUsers() const;
+    void setUsers(const QList<User> &value);
 };
 
 #endif // MESSAGE_H

@@ -19,9 +19,29 @@ QMap<int, QPair<QString, QString> > Message::getLinks() const
     return res;
 }
 
+qint64 Message::getTimeStamp() const
+{
+    return timeStamp;
+}
+
+void Message::setTimeStamp(const qint64 &value)
+{
+    timeStamp = value;
+}
+
 Message::Message():SerializableObject()
 {
     
+}
+
+QList<User> Message::getUsers() const
+{
+    return users;
+}
+
+void Message::setUsers(const QList<User> &value)
+{
+    users = value;
 }
 
 int Message::getOptId() const

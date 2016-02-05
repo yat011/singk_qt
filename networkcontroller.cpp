@@ -2,6 +2,7 @@
 #include "clienthandler.h"
 #include "message.h"
 #include <QMessageBox>
+
 int NetworkController::getClientId() const
 {
     return clientId;
@@ -83,6 +84,7 @@ void NetworkController::newConnection()
         Message msg;
         msg.setType(HELLO);
         msg.setClientId(socket->socketDescriptor());
+
         emit newClientConnected(msg);
         QByteArray arr;
         QDataStream out (&arr, QIODevice::WriteOnly);
@@ -130,6 +132,7 @@ void NetworkController::clientRead()
      if (msg.getType() == HELLO){
         qDebug() << "client Id" << msg.getClientId() << " come";
         clientId = msg.getClientId();
+        qDebug() << "User" << msg.getUsers().size();
         emit messageComeIn(msg);
         emit clientInitComplete();
      }else{
@@ -138,10 +141,7 @@ void NetworkController::clientRead()
 
 }
 
-void NetworkController::clientSend(QString str)
-{
 
-}
 void NetworkController::connectToHost(QString address, int port)
 {
     if (online){
@@ -156,7 +156,7 @@ void NetworkController::connectToHost(QString address, int port)
 
 }
 
-void NetworkController::broadcastToClients(const Message &msg)
+void NetworkController::broadcastToClients( Message &msg)
 {
    for (QTcpSocket* socket: clients.values()) {
         QByteArray arr;
@@ -170,10 +170,11 @@ void NetworkController::broadcastToClients(const Message &msg)
 
 }
 
-void NetworkController::sendToHost(const Message &msg)
+void NetworkController::sendToHost(Message &msg)
 {
        QByteArray arr;
         QDataStream out (&arr, QIODevice::WriteOnly);
+        msg.setClientId(clientId);
         out << msg;
         cSocket->write(arr);
         if (cSocket->flush()){
@@ -194,6 +195,7 @@ void NetworkController::connectedToHost() //client
 
 void NetworkController::onDisconnectedFromHost()
 {
+
     online= false;
     emit offline();
 

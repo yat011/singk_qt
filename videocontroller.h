@@ -65,8 +65,8 @@ private:
     void suggestPause(int clientId=-1);
     void initMessage(Message &msg);
     const int beatInterval = 2000;
-    const qint64 maxDelay = 200;
-    const int waitTime = 4000;
+    qint64 maxDelay = 500;
+    int waitTime = 4000;
     void _addVideo(QString title, QString url);
     void downloadVideo(QString url);
     bool playerLoaded = false;
@@ -80,7 +80,18 @@ private:
     void suggestBuffer();
     bool clientControllable = true;
     void hostAddVideo(Message &msg, int clientId);
+    QList<User> userList;
+    QMap<int,User> userMap;
+    void replyHeartBeat(Message &msg);
+    void updateUserList(UserList ls);
+    int getUserState();
+    User getMyUser();
+    //host
 
+    void addUser(const Message & msg);
+    void updateUser(const Message &msg);
+    void updateUser(const User &u);
+    void removeUser(int id);
 
 public:
     QMediaPlayer player;
@@ -108,11 +119,14 @@ signals:
     void resetPlayList();
     void consoleRead(QString msg);
     void informationSet(QString msg);
+    void userListUpdated(const UserList& ls);
+    void userUpdated(const User& u);
+    void userRemoved(int id);
 
 private slots:
     void serverStarted();
     void applyAction();
-     void videoEnded();
+    void videoEnded();
     void parseMessage(Message &msg);
     void displayValue(double value);
     void onLoaded(double duration);

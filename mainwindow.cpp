@@ -91,6 +91,16 @@ MainWindow::MainWindow(QWidget *parent) :
     });
     //connect(videoWidget,SIGNAL(mouseDoubleClickEvent(QMouseEvent * )),this, SLOT(onDoubleClicked(QMoustEvent*)));
 
+    connect(video,&VideoController::userListUpdated, [=](const UserList &ls){
+     //  qDebug() <<ls;
+        for (User u :ls){
+            qDebug() << u.id << " " << u.state;
+        }
+    });
+    connect(video,&VideoController::userUpdated, [=](const User & user){
+       qDebug() <<user.ping;
+    });
+
 }
 
 MainWindow::~MainWindow()

@@ -9,6 +9,7 @@
 #include <iostream>
 #include <QDir>
 #include <QCoreApplication>
+#include <QDateTime>
 VideoController::VideoController(QVideoWidget *view, QObject *parent) : QObject(parent)
 {
 
@@ -35,7 +36,7 @@ VideoController::VideoController(QVideoWidget *view, QObject *parent) : QObject(
     //player
     connect(&player,SIGNAL(mediaStatusChanged(QMediaPlayer::MediaStatus)),this,SLOT(mediaStatusChanged(QMediaPlayer::MediaStatus)));
     connect(&player,SIGNAL(positionChanged(qint64)),this,SLOT(positionChanged(qint64)));
-
+  //  connect(&player,&QMediaPlayer::media)
 
     netController = new NetworkController();
     //network
@@ -175,6 +176,7 @@ void VideoController::parseMessage(Message &msg)
              //   qDebug() << "client receive heart beat";
                 syncState(msg);
             }
+            replyHeartBeat(msg);
             break;
         case ADD_VIDEO:
             if (msg.getClientId()==-1){
@@ -284,7 +286,6 @@ void VideoController::helloClient(Message &msg)
     msg.setLinks(links);
     initMessage(msg);
 
-
     emit consoleRead("client"+QString::number(msg.getClientId())+" joined");
 }
 
@@ -294,6 +295,10 @@ void VideoController::heartBeat()
     Message msg;
     initMessage(msg);
     msg.setType(HEART_BEAT);
+    updateUser(getMyUser());
+    msg.setUsers(userMap.values());
+    qDebug() << "heart" << QDateTime::currentMSecsSinceEpoch();
+    msg.setTimeStamp(QDateTime::currentMSecsSinceEpoch());
     netController->broadcastToClients(msg);
 }
 
@@ -458,6 +463,90 @@ void VideoController::hostAddVideo(Message &msg,int clientId){
     reply.setOptId(vid++);
     reply.setClientId(clientId);
     netController->broadcastToClients(reply);
+}
+
+void VideoController::replyHeartBeat(Message &msg)
+{
+    updateUserList(msg.getUsers());
+
+    Message reply;
+    reply.setType(ECHO);
+    qDebug()<<"client forwad " <<msg.getTimeStamp();
+    reply.setTimeStamp(msg.getTimeStamp());
+    User mine = getMyUser();
+    UserList ls;
+    ls.append(mine);
+    msg.setUsers(ls);
+    netController->sendToHost(msg);
+
+
+}
+
+void VideoController::updateUserList(UserList ls)
+{
+    emit userListUpdated(ls);
+}
+
+int VideoController::getUserState()
+{
+    if(playable()){
+        return player.state();
+    }else{
+        if (downloader->downloadingSth()){
+            return DOWNLOADING;
+        }else if (!player.isVideoAvailable()){
+            return NO_MEDIA;
+        }
+        return UNKNOWN;
+    }
+}
+
+User VideoController::getMyUser()
+{
+    User mine;
+    if (netController->isHost()){
+        mine.id = -1;
+    }else{
+         mine.id = netController->getClientId();
+    }
+    mine.state=getUserState();
+    return mine;
+}
+
+void VideoController::addUser(const Message &msg)
+{
+    User u;
+    u.id =msg.getClientId();
+    u.state= UNKNOWN;
+    emit userUpdated(u);
+}
+
+void VideoController::updateUser(const Message &msg)
+{
+    UserList ls = msg.getUsers();
+    if (ls.count()>0){
+        User t= ls[0];
+        qDebug() << "host cal" << QDateTime::currentMSecsSinceEpoch();
+        t.ping = QDateTime::currentMSecsSinceEpoch() -msg.getTimeStamp();
+        updateUser(t);
+    }else{
+        qDebug() << "bug";
+    }
+}
+
+void VideoController::updateUser(const User &u)
+{
+
+    userMap[u.id]=u;
+    emit userUpdated(u);
+}
+
+void VideoController::removeUser(int id)
+{
+    if (userMap.contains(id) ){
+        userMap.remove(id);
+        emit userRemoved(id);
+    }
 }
 
 void VideoController::applyAction()
@@ -728,6 +817,9 @@ void VideoController::suggestPause(int clientId){
     if (player.state()==player.PausedState){
         return;
     }
+    if (!playable()){
+        return;
+    }
     if (netController->isHost()){
         if(netController->clients.count()==0){
             _pause();
@@ -751,6 +843,9 @@ void VideoController::suggestPause(int clientId){
 }
 void VideoController::suggestSeek(qint64 pos,int clientId){
 
+    if (!playable()){
+        return;
+    }
     if (netController->isHost()){
         if(netController->clients.count()==0){
             _seekTo(pos);

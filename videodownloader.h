@@ -19,6 +19,9 @@ public:
     void getTitle(QString url, int operation);
     static QString extractVid(QString url);
     bool downloading(QString url);
+    bool downloadingSth(){
+        return downloadingMap.size()>0;
+    }
 
 signals:
     void finish(bool result, QString title,QString url, int operation);
