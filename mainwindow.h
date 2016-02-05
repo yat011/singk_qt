@@ -60,6 +60,12 @@ private slots:
     void resetList();
     void clientInitComplete();
     void networkError();
+    void on_volumeSpinBox_editingFinished();
+    void volumeChanged(int volume);
+
+    void on_volumeSpinBox_valueChanged(int arg1);
+    void videoAvailableChanged(bool able);
+
 private:
     bool lock=false;
     bool pulling = false;

@@ -36,6 +36,13 @@
            </widget>
           </item>
           <item>
+           <widget class="QSpinBox" name="volumeSpinBox">
+            <property name="maximum">
+             <number>100</number>
+            </property>
+           </widget>
+          </item>
+          <item>
            <widget class="QSlider" name="timeSlider">
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
@@ -155,7 +162,6 @@
      </layout>
     </item>
    </layout>
-   <zorder>horizontalLayoutWidget</zorder>
    <zorder></zorder>
   </widget>
   <widget class="QMenuBar" name="menuBar">

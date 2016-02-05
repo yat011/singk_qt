@@ -56,6 +56,8 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(video->netController,SIGNAL(clientInitComplete()),this,SLOT(clientInitComplete()));
     connect(video,SIGNAL(resetPlayList()),this,SLOT(resetList()));
     connect(video->netController,SIGNAL(networkError()),this,SLOT(networkError()));
+    connect(&video->player, SIGNAL(volumeChanged(int)),this,SLOT(volumeChanged(int)));
+    connect(&video->player,SIGNAL(videoAvailableChanged(bool)),this,SLOT(videoAvailableChanged(bool)));
     //connect(videoWidget,SIGNAL(mouseDoubleClickEvent(QMouseEvent * )),this, SLOT(onDoubleClicked(QMoustEvent*)));
 
 }
@@ -250,4 +252,27 @@ void MainWindow::networkError()
 {
     lock=false;
     ui->actionOnline->setText("Online");
+}
+
+void MainWindow::on_volumeSpinBox_editingFinished()
+{
+
+}
+
+void MainWindow::volumeChanged(int volume)
+{
+    ui->volumeSpinBox->setValue(volume);
+}
+
+void MainWindow::on_volumeSpinBox_valueChanged(int arg1)
+{
+
+    video->player.setVolume(arg1);
+}
+
+void MainWindow::videoAvailableChanged(bool able)
+{
+    if (able){
+        ui->volumeSpinBox->setValue(video->player.volume());
+    }
 }
