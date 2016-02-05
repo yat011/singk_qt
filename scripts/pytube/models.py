@@ -103,8 +103,7 @@ class Video(object):
                     self._bytes_received += len(self._buffer)
                     dst_file.write(self._buffer)
                     if on_progress:
-                        pass
-                       # on_progress(self._bytes_received, file_size, start)
+                        on_progress(self._bytes_received, file_size, start)
 
         except KeyboardInterrupt:
             # TODO: Move this into the cli, ``KeyboardInterrupt`` handling
