@@ -10,14 +10,13 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 TARGET = singk
 TEMPLATE = app
-
+CONFIG += c++11
 
 SOURCES += main.cpp\
         mainwindow.cpp \
     jstoqtapi.cpp \
     videocontroller.cpp \
     networkcontroller.cpp \
-    clienthandler.cpp \
     onlinedialog.cpp \
     serializableobject.cpp \
     message.cpp \
@@ -30,15 +29,14 @@ HEADERS  += mainwindow.h \
     jstoqtapi.h \
     videocontroller.h \
     networkcontroller.h \
-    clienthandler.h \
     onlinedialog.h \
     serializableobject.h \
     message.h \
-    definition.h \
     user.h \
     videodownloader.h \
     videoplayer.h \
-    videodestroyer.h
+    videodestroyer.h \
+    definition.h
 
 FORMS    += mainwindow.ui \
     onlinedialog.ui

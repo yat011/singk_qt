@@ -9,8 +9,8 @@ int main(int argc, char *argv[])
     /*configuration*/
     qRegisterMetaTypeStreamOperators<MyPair>("MyPair");
     qRegisterMetaTypeStreamOperators<User>("User");
-    qRegisterMetaType<QList<User>>("UserList");
-    qRegisterMetaTypeStreamOperators<QList<User>>("UserList");
+    qRegisterMetaType<QList<User> >("UserList");
+    qRegisterMetaTypeStreamOperators<QList<User> > ("UserList");
 
 
     MainWindow w;
