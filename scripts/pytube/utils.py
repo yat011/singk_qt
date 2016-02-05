@@ -84,7 +84,7 @@ def print_status(progress, file_size, start):
     """
 
     percent_done = int(progress) * 100. / file_size
-    stdout.write("{process:"+str(percent_done)+"}")
+    stdout.write("{progress:"+str(percent_done)+"}\n")
     stdout.flush()
 
     #done = int(50 * progress / int(file_size))

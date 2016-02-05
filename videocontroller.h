@@ -33,9 +33,9 @@ private:
     void titleReturned(QString title);
     void clientInit(Message &msg);
     double currentTime =0;
-    VideoDownloader * downloader;
 
-    QMediaPlaylist playlist;
+
+
     VideoDestroyer destroyer;
  //---------
     int vid = 0;
@@ -86,7 +86,7 @@ public:
     QMediaPlayer player;
     JsToQtApi * api;
     NetworkController * netController;
-
+    VideoDownloader * downloader;
     double duration = 0;
     QMap<int, QPair<QString,QString> > links;
     explicit VideoController(QVideoWidget * view, QObject *parent = 0);
@@ -107,6 +107,7 @@ signals:
     void videoOnPlay(int vid,QString title);
     void resetPlayList();
     void consoleRead(QString msg);
+    void informationSet(QString msg);
 
 private slots:
     void serverStarted();

@@ -153,13 +153,24 @@ void VideoDownloader::readyReadStandardOutput()
 {
     QProcess* process = (QProcess*) sender();
     QString msg=  QString(process->readAll());
-    qDebug() << msg;
 
-    QRegExp exp("\\{title:(.*)\\}",Qt::CaseInsensitive);
+    for (QString str : msg.split('\n')){
+        QRegExp exp("\\{title:(.*)\\}",Qt::CaseInsensitive);
 
-    if (exp.indexIn(msg)!=-1){
-     process->setProperty("title",exp.capturedTexts()[1]);
+        if (exp.indexIn(str)!=-1){
+
+             process->setProperty("title",exp.capturedTexts()[1]);
+             continue;
+        }
+
+        QRegExp exp2("\\{progress:(.*)\\}",Qt::CaseInsensitive);
+
+        if (exp2.indexIn(str)!=-1){
+            QString title = process->property("title").value<QString>();
+            double progress = QString(exp2.capturedTexts()[1]).toDouble();
+            emit downloadProgress(title,progress);
+        }
+
     }
-
    // qDebug() <<  process->readyReadStandardError();
 }

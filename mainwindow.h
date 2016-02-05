@@ -65,10 +65,13 @@ private slots:
 
     void on_volumeSpinBox_valueChanged(int arg1);
     void videoAvailableChanged(bool able);
-
+protected:
+    void resizeEvent(QResizeEvent * event);
+    void showEvent(QShowEvent *event);
 private:
     bool lock=false;
     bool pulling = false;
+
     Ui::MainWindow *ui;
     QVideoWidget * videoWidget;
     QStandardItemModel * model;

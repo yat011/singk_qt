@@ -8,6 +8,8 @@
 #include <QDebug>
 #include <QListView>
 #include <QStyle>
+#include <QGraphicsOpacityEffect>
+#include <QPropertyAnimation>
 class CustomQItem : public  QStandardItem{
 private :
 
@@ -27,9 +29,10 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->playBtn->setText("");
     ui->pauseBtn->setIcon(style()->standardIcon(QStyle::SP_MediaPause));
     ui->pauseBtn->setText("");
+    ui->pauseBtn->hide();
     ui->fullScreenBtn->setIcon(style()->standardIcon(QStyle::SP_TitleBarMaxButton));
     ui->fullScreenBtn->setText("");
-
+    ui->fullScreenBtn->hide();
 
     /*
     connect(video->api,SIGNAL(loaded(double)),this,SLOT(onLoaded(double)));
@@ -38,8 +41,23 @@ MainWindow::MainWindow(QWidget *parent) :
 
 
     videoWidget = new QVideoWidget();
+    videoWidget->setParent(ui->playArea);
     videoWidget->show();
-    ui->playerVerticalLayout->insertWidget(0,videoWidget);
+   // videoWidget->setS
+    ui->info_label->raise();
+    QGraphicsOpacityEffect * eff = new QGraphicsOpacityEffect(this);
+    ui->info_label->setGraphicsEffect(eff);
+    QPropertyAnimation *a = new QPropertyAnimation(eff,"opacity");
+    a->setDuration(0);
+    a->setStartValue(1);
+    a->setEndValue(0.7);
+    a->setEasingCurve(QEasingCurve::InBack);
+    a->start(QPropertyAnimation::DeleteWhenStopped);
+
+    // ui->info_label->setText("");
+
+
+  // ui->playerVerticalLayout->insertWidget(0,videoWidget);
 
     video = new VideoController(videoWidget,this);
     model = new QStandardItemModel(this);
@@ -58,6 +76,19 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(video->netController,SIGNAL(networkError()),this,SLOT(networkError()));
     connect(&video->player, SIGNAL(volumeChanged(int)),this,SLOT(volumeChanged(int)));
     connect(&video->player,SIGNAL(videoAvailableChanged(bool)),this,SLOT(videoAvailableChanged(bool)));
+
+    connect(video,&VideoController::informationSet,[=](QString msg){
+       ui->info_label->setText(msg);
+    });
+
+    connect(&video->player,&QMediaPlayer::stateChanged,[=](QMediaPlayer::State state){
+        if (state == QMediaPlayer::PlayingState){
+             ui->playBtn->setIcon(style()->standardIcon(QStyle::SP_MediaPause));
+        }else{
+            ui->playBtn->setIcon(style()->standardIcon(QStyle::SP_MediaPlay));
+        }
+
+    });
     //connect(videoWidget,SIGNAL(mouseDoubleClickEvent(QMouseEvent * )),this, SLOT(onDoubleClicked(QMoustEvent*)));
 
 }
@@ -72,7 +103,11 @@ void MainWindow::on_playBtn_clicked()
     if (lock){
         return;
     }
-    video->play();
+    if (video->player.state() == QMediaPlayer::PlayingState){
+        video->pause();
+    }else{
+        video->play();
+    }
 }
 
 
@@ -275,4 +310,18 @@ void MainWindow::videoAvailableChanged(bool able)
     if (able){
         ui->volumeSpinBox->setValue(video->player.volume());
     }
+}
+
+void MainWindow::resizeEvent(QResizeEvent *event)
+{
+    videoWidget->setGeometry(0,0,ui->playArea->size().width(),ui->playArea->size().height());
+    const QRect rect = ui->info_label->geometry();
+    ui->info_label->setGeometry(0,0,ui->playArea->width(),rect.height());
+}
+
+void MainWindow::showEvent(QShowEvent *event)
+{
+     videoWidget->setGeometry(0,0,ui->playArea->size().width(),ui->playArea->size().height());
+     const QRect rect = ui->info_label->geometry();
+     ui->info_label->setGeometry(0,0,ui->playArea->width(),rect.height());
 }

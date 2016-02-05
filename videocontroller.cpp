@@ -46,6 +46,21 @@ VideoController::VideoController(QVideoWidget *view, QObject *parent) : QObject(
     connect(&waitTimer,SIGNAL(timeout()),this,SLOT(applyAction()));
     connect(downloader,SIGNAL(errorSig(QString)),this,SLOT(downloaderError(QString)));
 
+    connect(downloader,&VideoDownloader::downloadProgress,[=](QString title,double progress){
+        //progress
+        if (currentId==-1){//no video
+            emit informationSet("Download "+title+"("+QString::number(progress)+"%)");
+            if (progress==100){
+                emit informationSet("");
+            }
+        }else if (links[currentId].first == title){// downloading next video
+            emit informationSet("Download "+title+"("+QString::number(progress)+"%)");
+            if (progress==100){
+                emit informationSet("");
+            }
+        }
+    });
+
 }
 
 
