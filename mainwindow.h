@@ -75,6 +75,7 @@ private:
     Ui::MainWindow *ui;
     QVideoWidget * videoWidget;
     QStandardItemModel * model;
+    QStandardItemModel * peerModel;
     QMap <int,QStandardItem*>  itemMap;
      OnlineDialog *dialog=0 ;
 };

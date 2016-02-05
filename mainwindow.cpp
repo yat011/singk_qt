@@ -10,6 +10,7 @@
 #include <QStyle>
 #include <QGraphicsOpacityEffect>
 #include <QPropertyAnimation>
+#include <QTreeWidgetItem>
 class CustomQItem : public  QStandardItem{
 private :
 
@@ -47,6 +48,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->info_label->raise();
     QGraphicsOpacityEffect * eff = new QGraphicsOpacityEffect(this);
     ui->info_label->setGraphicsEffect(eff);
+    ui->info_label->setText("");
     QPropertyAnimation *a = new QPropertyAnimation(eff,"opacity");
     a->setDuration(0);
     a->setStartValue(1);
@@ -62,6 +64,23 @@ MainWindow::MainWindow(QWidget *parent) :
     video = new VideoController(videoWidget,this);
     model = new QStandardItemModel(this);
     ui->listView->setModel(model);
+
+    ui->tableWidget->setColumnCount(3);
+    QTableWidgetItem * h1 = new QTableWidgetItem();
+    h1->setText("Id");
+
+    QTableWidgetItem * h2 = new QTableWidgetItem();
+    h2->setText("Ping");
+    QTableWidgetItem * h3 = new QTableWidgetItem();
+    h3->setText("State");
+    ui->tableWidget->setHorizontalHeaderItem(0,h1);
+    ui->tableWidget->setHorizontalHeaderItem(1,h2);
+    ui->tableWidget->setHorizontalHeaderItem(2,h3);
+    ui->tableWidget->verticalHeader()->setVisible(false);
+    ui->tableWidget->setColumnWidth(0,40);
+     ui->tableWidget->setColumnWidth(1,70);
+      ui->tableWidget->setColumnWidth(2,130);
+
 
     connect(video,SIGNAL(videoAdded(int,QString)),this,SLOT(videoAdded(int,QString)));
     connect(video,SIGNAL(videoOnPlay(int,QString)),this, SLOT(videoOnPlay(int,QString)));
@@ -93,12 +112,20 @@ MainWindow::MainWindow(QWidget *parent) :
 
     connect(video,&VideoController::userListUpdated, [=](const UserList &ls){
      //  qDebug() <<ls;
-        for (User u :ls){
-            qDebug() << u.id << " " << u.state;
+         ui->tableWidget->clearContents();
+        int i =0;
+        ui->tableWidget->setRowCount(ls.count());
+         for (User u :ls){
+
+            ui->tableWidget->setItem(i,0,new QTableWidgetItem(QString::number(u.id)));
+             ui->tableWidget->setItem(i,1,new QTableWidgetItem(QString::number(u.ping)));
+              ui->tableWidget->setItem(i,2,new QTableWidgetItem(VideoController::getStateString(u.state)));
+              i++;
         }
+
     });
     connect(video,&VideoController::userUpdated, [=](const User & user){
-       qDebug() <<user.ping;
+       //qDebug() <<"user ping " << user.ping;
     });
 
 }

@@ -120,6 +120,7 @@ void NetworkController::clientDisconnected()
     qDebug() << "client " << id << " disconnected";
     clients.remove(id);
 
+    emit clientDisconnectedSig(id);
 }
 
 void NetworkController::clientRead()

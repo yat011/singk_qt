@@ -67,6 +67,7 @@ private:
     const int beatInterval = 2000;
     qint64 maxDelay = 500;
     int waitTime = 4000;
+    int bufferTime =10000;
     void _addVideo(QString title, QString url);
     void downloadVideo(QString url);
     bool playerLoaded = false;
@@ -80,7 +81,6 @@ private:
     void suggestBuffer();
     bool clientControllable = true;
     void hostAddVideo(Message &msg, int clientId);
-    QList<User> userList;
     QMap<int,User> userMap;
     void replyHeartBeat(Message &msg);
     void updateUserList(UserList ls);
@@ -108,7 +108,25 @@ public:
     void addVideo(QString url);
     void updateTime();
     bool playable();
+    static QString getStateString(int code){
+        switch(code){
+        case 2:
+            return "Paused";
+           case 1:
+            return "Playing";
+        case 0:
+            return "Stopped";
+        case UNKNOWN:
+            return "unknown";
+        case DOWNLOADING:
+            return "Downloading";
+        case NO_MEDIA:
+            return "no media";
+        default:
+            return "unknown";
+        }
 
+    }
 
 
 

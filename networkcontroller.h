@@ -46,6 +46,7 @@ signals:
     void clientInitComplete();
     void consoleMessage(QString msg);
     void networkError();
+    void clientDisconnectedSig(int id);
 private slots:
     //----server
     void newConnection();

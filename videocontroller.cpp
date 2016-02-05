@@ -62,6 +62,11 @@ VideoController::VideoController(QVideoWidget *view, QObject *parent) : QObject(
         }
     });
 
+    connect(netController,&NetworkController::clientDisconnectedSig,[=](int id){
+        emit consoleRead("client"+QString::number(id)+" disconnected");
+        removeUser(id);
+    });
+
 }
 
 
@@ -224,6 +229,9 @@ void VideoController::parseMessage(Message &msg)
             emit consoleRead("client"+QString::number(msg.getClientId())+" add a video");
             hostAddVideo(msg,msg.getClientId());
             break;
+        case ECHO:
+            updateUser(msg);
+            break;
         default:
             break;
         }
@@ -296,8 +304,9 @@ void VideoController::heartBeat()
     initMessage(msg);
     msg.setType(HEART_BEAT);
     updateUser(getMyUser());
-    msg.setUsers(userMap.values());
-    qDebug() << "heart" << QDateTime::currentMSecsSinceEpoch();
+    UserList ls = userMap.values();
+    msg.setUsers(ls);
+    emit updateUserList(ls);
     msg.setTimeStamp(QDateTime::currentMSecsSinceEpoch());
     netController->broadcastToClients(msg);
 }
@@ -471,13 +480,13 @@ void VideoController::replyHeartBeat(Message &msg)
 
     Message reply;
     reply.setType(ECHO);
-    qDebug()<<"client forwad " <<msg.getTimeStamp();
+   // qDebug()<<"client forwad " <<msg.getTimeStamp();
     reply.setTimeStamp(msg.getTimeStamp());
     User mine = getMyUser();
     UserList ls;
     ls.append(mine);
-    msg.setUsers(ls);
-    netController->sendToHost(msg);
+    reply.setUsers(ls);
+    netController->sendToHost(reply);
 
 
 }
@@ -526,7 +535,9 @@ void VideoController::updateUser(const Message &msg)
     UserList ls = msg.getUsers();
     if (ls.count()>0){
         User t= ls[0];
-        qDebug() << "host cal" << QDateTime::currentMSecsSinceEpoch();
+      //  qDebug() << "host cal" << QDateTime::currentMSecsSinceEpoch();
+      //  qDebug() << "host receive" << msg.getTimeStamp();
+        //qDebug() << QDateTime::currentMSecsSinceEpoch() - msg.getTimeStamp();
         t.ping = QDateTime::currentMSecsSinceEpoch() -msg.getTimeStamp();
         updateUser(t);
     }else{
@@ -544,6 +555,7 @@ void VideoController::updateUser(const User &u)
 void VideoController::removeUser(int id)
 {
     if (userMap.contains(id) ){
+        qDebug() << "removed " << id;
         userMap.remove(id);
         emit userRemoved(id);
     }
@@ -618,7 +630,7 @@ void VideoController::downloaderError(QString err)
 
 void VideoController::positionChanged(qint64 position)
 {
-    if (nextVid ==-1 && (player.duration()-position) < 5000 && links.count()>1){
+    if (nextVid ==-1 && (player.duration()-position) < bufferTime && links.count()>1){
         //buffer and set next
         if (!netController->isOnline()){
             pickNextVideo();
