@@ -130,9 +130,9 @@ void VideoController::parseMessage(Message &msg)
         case PRE_PLAY:
             replyPrePlay(msg);
             if (msg.getClientId()==-1){
-                emit consoleRead("host clicks play");
+                emit consoleRead("host clicks playBtn");
             }else{
-                emit consoleRead("client"+QString::number(msg.getClientId())+" clicks play");
+                emit consoleRead("client"+QString::number(msg.getClientId())+" clicks playBtn");
             }
             break;
         case PLAY:
@@ -150,9 +150,9 @@ void VideoController::parseMessage(Message &msg)
                 currentSeq = msg.getSeq();
                 _pause();
                 if (msg.getClientId()==-1){
-                    emit consoleRead("host clicks pause");
+                    emit consoleRead("host clicks pauseBtn");
                 }else{
-                    emit consoleRead("client"+QString::number(msg.getClientId())+" clicks pause");
+                    emit consoleRead("client"+QString::number(msg.getClientId())+" clicks pauseBtn");
                 }
 
             }
@@ -163,9 +163,9 @@ void VideoController::parseMessage(Message &msg)
                 currentSeq = msg.getSeq();
                 _seekTo(msg.getTimeAt());
                 if (msg.getClientId()==-1){
-                    emit consoleRead("host seek to "+ QString::number(msg.getTimeAt()/1000));
+                    emit consoleRead("host seek to "+ QString::number(msg.getTimeAt()/1000)+"sec");
                 }else{
-                    emit consoleRead("client"+QString::number(msg.getClientId())+" seek to "+  QString::number(msg.getTimeAt()/1000));
+                    emit consoleRead("client"+QString::number(msg.getClientId())+" seek to "+  QString::number(msg.getTimeAt()/1000)+"sec");
                 }
             }
         case CHANGE_TO:
@@ -173,7 +173,7 @@ void VideoController::parseMessage(Message &msg)
                 qDebug()<< "client change To";
                 currentSeq = msg.getSeq();
                 loadVideo(msg.getCurrentId());
-                 emit consoleRead("change to next Video");
+                 emit consoleRead("change to next Video "+links[msg.getCurrentId()].first);
             }
         break;
         case HEART_BEAT:
@@ -379,7 +379,7 @@ void VideoController::loadVideo(int id)
             nextVid = -1;
         }else{
             qDebug() << "wait for download";
-            emit consoleRead("wait for downloading");
+           // emit consoleRead("wait for downloading");
         }
     }else{
         //download;
@@ -593,7 +593,7 @@ void VideoController::addVideo(QString url){
             downloader->getTitle(url,ADD_VIDEO);
         }
         // wait for callback
-        emit consoleRead("wait for data");
+        emit consoleRead("acquiring data");
 
 }
 bool VideoController::videoExists(QString title){
@@ -618,7 +618,7 @@ void VideoController::onDownloadFinish(bool downloaded, QString title, QString u
         }
     }else{
         //error
-        emit consoleRead("error: acquiring video information fail");
+        emit consoleRead("error: acquiring video information fails");
     }
 
 }
@@ -907,7 +907,7 @@ void VideoController::suggestPlay(int clientId)
         waitTimer.start(waitTime);
         msg.copyTo(BufferMsg);
         netController->broadcastToClients(msg);
-        emit consoleRead("wait for client ready");
+        emit consoleRead("wait for clients ready");
 
     }else{
         Message msg;
