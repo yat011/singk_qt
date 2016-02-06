@@ -11,6 +11,10 @@
 #include <QGraphicsOpacityEffect>
 #include <QPropertyAnimation>
 #include <QTreeWidgetItem>
+#include <QQuickView>
+#include <QQmlComponent>
+#include <QQmlProperty>
+#include <QQmlEngine>
 class CustomQItem : public  QStandardItem{
 private :
 
@@ -42,13 +46,13 @@ MainWindow::MainWindow(QWidget *parent) :
 
 
     videoWidget = new QVideoWidget();
-    videoWidget->setParent(ui->playArea);
-    videoWidget->show();
+    //videoWidget->setParent(ui->playArea);
+   // videoWidget->show();
    // videoWidget->setS
-    ui->info_label->raise();
+    //ui->info_label->raise();
     QGraphicsOpacityEffect * eff = new QGraphicsOpacityEffect(this);
-    ui->info_label->setGraphicsEffect(eff);
-    ui->info_label->setText("");
+   // ui->info_label->setGraphicsEffect(eff);
+   // ui->info_label->setText("");
     QPropertyAnimation *a = new QPropertyAnimation(eff,"opacity");
     a->setDuration(0);
     a->setStartValue(1);
@@ -56,10 +60,18 @@ MainWindow::MainWindow(QWidget *parent) :
     a->setEasingCurve(QEasingCurve::InBack);
     a->start(QPropertyAnimation::DeleteWhenStopped);
 
-    // ui->info_label->setText("");
-
-
-  // ui->playerVerticalLayout->insertWidget(0,videoWidget);
+    qmlVideo = new QQuickView();
+    qmlVideo->engine()->addImportPath("C:\\Qt\\5.5\\msvc2013_64\\qml");
+    container = QWidget::createWindowContainer(qmlVideo);
+    container->setStyleSheet("background-color: rgb(7, 7, 7);");
+    qmlVideo->setMinimumSize(QSize(500,500));
+     qmlVideo->setSource(QUrl("qrc:/video.qml"));
+     qmlVideo->setColor(QColor(0,0,0,255));
+     QObject * obj = (QObject* )qmlVideo->rootObject();
+     QVariant m= "hellofhefa";
+     QVariant d= 5000;
+    QMetaObject::invokeMethod(obj,"showFlashMessage",Q_ARG(QVariant,m),Q_ARG(QVariant,d));
+    ui->playArea->layout()->addWidget(container);
 
     video = new VideoController(videoWidget,this);
     model = new QStandardItemModel(this);
@@ -97,7 +109,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(&video->player,SIGNAL(videoAvailableChanged(bool)),this,SLOT(videoAvailableChanged(bool)));
 
     connect(video,&VideoController::informationSet,[=](QString msg){
-       ui->info_label->setText(msg);
+       //ui->info_label->setText(msg);
     });
 
     connect(&video->player,&QMediaPlayer::stateChanged,[=](QMediaPlayer::State state){
@@ -352,13 +364,24 @@ void MainWindow::videoAvailableChanged(bool able)
 void MainWindow::resizeEvent(QResizeEvent *event)
 {
     videoWidget->setGeometry(0,0,ui->playArea->size().width(),ui->playArea->size().height());
-    const QRect rect = ui->info_label->geometry();
-    ui->info_label->setGeometry(0,0,ui->playArea->width(),rect.height());
+  //  const QRect rect = ui->info_label->geometry();
+  //  ui->info_label->setGeometry(0,0,ui->playArea->width(),rect.height());
+
+    //container->setGeometry(0,0,ui->playArea->size().width(),ui->playArea->size().height());
+      // qmlVideo->setGeometry(0,0,ui->playArea->size().width(),ui->playArea->size().height());
+   // QObject * obj = (QObject* )qmlVideo->rootObject();
+    //obj->setProperty("x",ui->playArea->width());obj->setProperty("y",ui->playArea->height());
+
 }
 
 void MainWindow::showEvent(QShowEvent *event)
 {
      videoWidget->setGeometry(0,0,ui->playArea->size().width(),ui->playArea->size().height());
-     const QRect rect = ui->info_label->geometry();
-     ui->info_label->setGeometry(0,0,ui->playArea->width(),rect.height());
+     //const QRect rect = ui->info_label->geometry();
+    // ui->info_label->setGeometry(0,0,ui->playArea->width(),rect.height());
+     //container->setGeometry(0,0,ui->playArea->size().width(),ui->playArea->size().height());
+      //  qmlVideo->setGeometry(0,0,ui->playArea->size().width(),ui->playArea->size().height());
+     //QObject * obj = (QObject* )qmlVideo->rootObject();
+     //obj->setProperty("x",ui->playArea->width());obj->setProperty("y",ui->playArea->height());
+\
 }

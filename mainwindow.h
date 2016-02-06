@@ -8,6 +8,7 @@
 #include <QMap>
 #include <QVideoWidget>
 #include <QMediaPlayer>
+#include <QQuickView>
 
 namespace Ui {
 class MainWindow;
@@ -71,7 +72,8 @@ protected:
 private:
     bool lock=false;
     bool pulling = false;
-
+    QQuickView * qmlVideo ;
+    QWidget *container;
     Ui::MainWindow *ui;
     QVideoWidget * videoWidget;
     QStandardItemModel * model;

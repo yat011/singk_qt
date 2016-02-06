@@ -4,9 +4,11 @@
 #
 #-------------------------------------------------
 
-QT       += core gui webkitwidgets network  multimedia multimediawidgets
+QT       += core gui webkitwidgets network multimedia multimediawidgets qml quick declarative
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+
+
 
 TARGET = singk
 TEMPLATE = app
@@ -42,4 +44,24 @@ FORMS    += mainwindow.ui \
     onlinedialog.ui
 
 DISTFILES += \
-    tmpl.html
+    tmpl.html \
+    video.qml
+
+RESOURCES += \
+    res.qrc
+
+QML2_IMPORT_PATH=C:\Qt\5.5\msvc2013_64\qml
+unix:!macx:!symbian: LIBS += -L$${QML2_IMPORT_PATH}
+unix:!android {
+    isEmpty(target.path) {
+        qnx {
+            target.path = /tmp/$${TARGET}/bin
+        } else {
+            target.path = /opt/$${TARGET}/bin
+        }
+        export(target.path)
+    }
+    INSTALLS += target
+}
+
+export(INSTALLS)
