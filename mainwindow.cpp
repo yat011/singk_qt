@@ -1,4 +1,5 @@
 #include "mainwindow.h"
+#include "qmlvideoplayer.h"
 #include "ui_mainwindow.h"
 #include <QNetworkProxyFactory>
 #include <QWebSettings>
@@ -68,9 +69,6 @@ MainWindow::MainWindow(QWidget *parent) :
      qmlVideo->setSource(QUrl("qrc:/video.qml"));
      qmlVideo->setColor(QColor(0,0,0,255));
      QObject * obj = (QObject* )qmlVideo->rootObject();
-     QVariant m= "hellofhefa";
-     QVariant d= 5000;
-    QMetaObject::invokeMethod(obj,"showFlashMessage",Q_ARG(QVariant,m),Q_ARG(QVariant,d));
     ui->playArea->layout()->addWidget(container);
 
     video = new VideoController(qmlVideo,this);
@@ -109,10 +107,11 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(video->player,SIGNAL(videoAvailableChanged(bool)),this,SLOT(videoAvailableChanged(bool)));
 
     connect(video,&VideoController::informationSet,[=](QString msg){
-       //ui->info_label->setText(msg);
+        QmlVideoPlayer *qp=  (QmlVideoPlayer*) video->player;
+        qp->setInfoMsg(msg);
     });
 
-   /* connect(video->player,&QMediaPlayer::stateChanged,[=](QMediaPlayer::State state){
+    connect(video->player,&VideoPlayer::stateChanged,[=](int state){
         if (state == QMediaPlayer::PlayingState){
              ui->playBtn->setIcon(style()->standardIcon(QStyle::SP_MediaPause));
         }else{
@@ -120,8 +119,7 @@ MainWindow::MainWindow(QWidget *parent) :
         }
 
     });
-    //connect(videoWidget,SIGNAL(mouseDoubleClickEvent(QMouseEvent * )),this, SLOT(onDoubleClicked(QMoustEvent*)));
-*/
+
     connect(video,&VideoController::userListUpdated, [=](const UserList &ls){
      //  qDebug() <<ls;
          ui->tableWidget->clearContents();
@@ -294,6 +292,8 @@ void MainWindow::test()
 void MainWindow::showConsoleMessage(QString msg)
 {
     ui->consoleDisplay->append(msg+"\n");
+    QmlVideoPlayer *qp=  (QmlVideoPlayer*) video->player;
+    qp->showFlashMessage(msg);
 }
 
 void MainWindow::online(bool host)
@@ -356,6 +356,7 @@ void MainWindow::on_volumeSpinBox_valueChanged(int arg1)
 
 void MainWindow::videoAvailableChanged(bool able)
 {
+    qDebug() << "ava";
     if (able){
         ui->volumeSpinBox->setValue(video->player->volume());
     }

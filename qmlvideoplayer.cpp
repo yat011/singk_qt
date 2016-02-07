@@ -11,7 +11,7 @@ QmlVideoPlayer::QmlVideoPlayer(QObject *qml, QQuickView* window, QObject *parent
      QObject::connect(item,SIGNAL(mediaStatusChanged(int)),this,SLOT(qmlMediaStatusChanged(int)));
      QObject::connect(item,SIGNAL(videoDurationChanged(int)),this,SLOT(qmlDurationChanged(int)));
     QObject::connect(item,SIGNAL(videoPositionChanged(int)),this,SLOT(qmlPositionChanged(int)));
-    QObject::connect(item,SIGNAL(videoAvailabilityChanged(int)),this,SLOT(qmlAvailabilityChanged(int)));
+    QObject::connect(item,SIGNAL(videoAvailabilityChanged(bool)),this,SLOT(qmlAvailabilityChanged(bool)));
 }
 
 void QmlVideoPlayer::play()
@@ -63,13 +63,13 @@ QString QmlVideoPlayer::getErrorString()
 
 void QmlVideoPlayer::setMedia(QUrl url)
 {
+    qDebug()<<"set url"<<url;
     qmlVideo->setProperty("source", url.toString());
 }
 
 bool QmlVideoPlayer::isVideoAvailable()
 {
-   int s= qmlVideo->property("availability").toInt();
-   return s==0;
+   return qmlVideo->property("hasVideo").toBool();
 }
 
 qint64 QmlVideoPlayer::duration()
@@ -87,6 +87,24 @@ int QmlVideoPlayer::volume()
 {
     double v = qmlVideo->property("volume").toDouble();
     return (int)(v*100);
+}
+
+QString QmlVideoPlayer::source()
+{
+    return qmlVideo->property("source").toString();
+}
+
+void QmlVideoPlayer::showFlashMessage(QString msg)
+{
+    QVariant m= msg;
+    QVariant d= 3000;
+    QMetaObject::invokeMethod(qmlVideo,"showFlashMessage",Q_ARG(QVariant,m),Q_ARG(QVariant,d));
+}
+
+void QmlVideoPlayer::setInfoMsg(QString msg)
+{
+    QVariant m= msg;
+    QMetaObject::invokeMethod(qmlVideo,"setInfoMessage",Q_ARG(QVariant,m));
 }
 
 void QmlVideoPlayer::qmlStateChanged(int state)
@@ -109,16 +127,19 @@ void QmlVideoPlayer::qmlPositionChanged(int pos)
     emit positionChanged(pos);
 }
 
-void QmlVideoPlayer::qmlAvailabilityChanged(int a)
+void QmlVideoPlayer::qmlAvailabilityChanged(bool a)
 {
-    qDebug() << "ava " << a;
-    emit videoAvailableChanged(a==0);
-
+    emit videoAvailableChanged(a);
 }
 
 void QmlVideoPlayer::testSlot(QString msg)
 {
     qDebug()<<"test slot:"<<msg;
+}
+
+void QmlVideoPlayer::qmlVolumeChanged(int v)
+{
+    emit volumeChanged(v);
 }
 
 

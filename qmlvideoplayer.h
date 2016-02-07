@@ -25,13 +25,17 @@ public:
     qint64 duration();
     void setVolume(int v);
     int volume();
+    QString source();
+    void showFlashMessage(QString msg);
+    void setInfoMsg(QString msg);
 private slots:
     void qmlStateChanged(int state);
      void qmlMediaStatusChanged(int status);
       void qmlDurationChanged(int duration);
       void qmlPositionChanged(int pos);
-      void qmlAvailabilityChanged(int a);
+      void qmlAvailabilityChanged(bool a);
     void testSlot(QString msg);
+    void qmlVolumeChanged(int v);
 };
 
 

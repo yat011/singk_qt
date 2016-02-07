@@ -24,12 +24,14 @@ public:
     virtual qint64 duration()=0;
     virtual void setVolume(int v)=0;
     virtual int volume()=0;
+    virtual QString source()=0;
 signals:
     void positionChanged(qint64);
     void mediaStatusChanged(int);
     void stateChanged(int);
     void durationChanged(qint64);
     void videoAvailableChanged(bool);
+    void volumeChanged(int);
 public slots:
 };
 

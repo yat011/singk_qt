@@ -33,9 +33,7 @@ VideoController::VideoController(QQuickView *view, QObject *parent) : QObject(pa
 
     downloader= new VideoDownloader();
     connect(downloader,SIGNAL(finish(bool,QString,QString,int)),this,SLOT(onDownloadFinish(bool,QString,QString,int)));
-    connect(player ,&VideoPlayer::stateChanged,[=](int s){
-        qDebug() <<"yo"<< s;
-    });
+
     //player
     connect(player ,SIGNAL(mediaStatusChanged(int)),this,SLOT(mediaStatusChanged(int)));
     connect(player ,SIGNAL(positionChanged(qint64)),this,SLOT(positionChanged(qint64)));
@@ -79,7 +77,7 @@ void VideoController::videoEnded()
 {
 
     qDebug() << "ended";
-
+    ended = true;
     if (!netController->isOnline()){
 
 
@@ -249,6 +247,10 @@ void VideoController::syncState(const Message &msg){
         loadVideo(currentId);
         return;
     }
+    if (!playable()){
+        return;
+    }
+
     if (abs(player->position()-msg.getTimeAt())> maxDelay && playable()){
          qDebug() <<"sync time" << msg.getTimeAt() << " " << player->position();
          emit consoleRead("sync time with host");
@@ -256,7 +258,7 @@ void VideoController::syncState(const Message &msg){
     }
     if (player->state() != msg.getCurrentState()){
         qDebug() <<"sync state";
-        emit consoleRead("sync player state with home");
+        emit consoleRead("sync player state with host");
         if (msg.getCurrentState() == QMediaPlayer::PausedState){
             _pause();
             _seekTo(msg.getTimeAt());
@@ -325,9 +327,19 @@ void VideoController::mediaStatusChanged(int status)
     if (status == QMediaPlayer::InvalidMedia){
         qDebug() <<player->getErrorString();
     }
+    if (status == QMediaPlayer::LoadedMedia){
+        ended = false;
+        if (netController->isOnline()){
+            if (netController->isHost()){
+                play();
+            }
+        }else{
+            play();
+        }
+    }
     if (status == QMediaPlayer::EndOfMedia){
         videoEnded();
-    }else if (status >=3 && status <=6){
+    }else if (playable()){
         if (netController->isOnline() && !netController->isHost()){
             if (BufferMsg.getSeq() > currentSeq){
                 if (BufferMsg.getType() == PRE_PLAY){
@@ -338,15 +350,7 @@ void VideoController::mediaStatusChanged(int status)
         }
 
     }
-    if (status == QMediaPlayer::LoadedMedia){
-        if (netController->isOnline()){
-            if (netController->isHost()){
-                play();
-            }
-        }else{
-            play();
-        }
-    }
+
 
 }
 
@@ -362,7 +366,7 @@ void VideoController::loadVideo(int id)
     }else{
         setCurrentVideo(id);
         if (id == -1){
-            player->setMedia(QUrl());
+            qDebug() << "no video";
             return;
         }
     }
@@ -373,11 +377,13 @@ void VideoController::loadVideo(int id)
     if (videoExists(yid)){
         if (!downloader->downloading(links[id].second)){
             qDebug()<<"now load "<< links[id].first;
-            if (QSysInfo::macVersion() > 0){
-                QString path = QDir::currentPath()+"/videos/"+yid+".mp4";
-                player->setMedia(QUrl::fromLocalFile(path));
+            QString path = QDir::currentPath()+"/videos/"+yid+".mp4";
+            QUrl url = QUrl::fromLocalFile(path);
+            if (url.toString() == player->source()){
+                ended=false;
+                play();
             }else{
-                player->setMedia(QUrl(QDir::currentPath()+"/videos/"+yid+".mp4"));
+                player->setMedia(url);
             }
             nextVid = -1;
         }else{
@@ -508,6 +514,8 @@ int VideoController::getUserState()
             return DOWNLOADING;
         }else if (!player->isVideoAvailable()){
             return NO_MEDIA;
+        }else if (!player->state() == QMediaPlayer::EndOfMedia){
+            return EndOfMedia;
         }
         return UNKNOWN;
     }
@@ -680,7 +688,8 @@ void VideoController::updateTime()
 
 bool VideoController::playable()
 {
-    if (player->mediaStatus()>=3 && player->mediaStatus() <=6){
+    int status = player->mediaStatus();
+    if ((status ==3 || status ==7 || status ==6) && !ended){
         return true;
     }else{
         return false;
@@ -690,6 +699,7 @@ bool VideoController::playable()
 void VideoController::serverStarted()
 {
     qDebug() << "server started";
+    emit consoleRead("Server started");
     onlineTimer.setInterval(beatInterval);
     onlineTimer.setSingleShot(false);
     onlineTimer.start();
@@ -738,7 +748,7 @@ void VideoController::setCurrentVideo(int id)
     currentId = id;
     qDebug() << "set current" << currentId;
     if (id != -1){
-         emit videoOnPlay(id, links.find(id).value().first);
+         emit videoOnPlay(id, links[id].first);
     }else{
         emit videoOnPlay(id,"");
     }
@@ -753,7 +763,7 @@ void VideoController::_play()
 
 void VideoController::_stop()
 {
-
+    player->stop();
 }
 
 void VideoController::_pause()

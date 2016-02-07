@@ -43,8 +43,8 @@ private:
  //---------
     int vid = 0;
     int currentId =-1;
-
     int nextVid = -1;
+    bool ended = false;
     void getTitle(QString url);
     void setCurrentVideo(int id);
 
@@ -125,6 +125,8 @@ public:
             return "Downloading";
         case NO_MEDIA:
             return "no media";
+        case EndOfMedia:
+            return "end of media";
         default:
             return "unknown";
         }

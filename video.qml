@@ -3,7 +3,7 @@ import QtMultimedia 5.5
 Video {
     id: video
 
-    source: "file:///C:\\Users\\at\\Documents\\qt\\build-helloQML-Desktop_Qt_5_5_1_MSVC2013_64bit-Debug\\R2BUiErBRnY.mp4"
+   // source: "file:///C:\\Users\\at\\Documents\\qt\\build-helloQML-Desktop_Qt_5_5_1_MSVC2013_64bit-Debug\\R2BUiErBRnY.mp4"
     anchors.fill: parent
 
 
@@ -11,8 +11,8 @@ Video {
     signal mediaStatusChanged (int status)
     signal videoDurationChanged(int duration)
     signal videoPositionChanged(int pos)
-    signal videoAvailabilityChanged(int a)
-
+    signal videoAvailabilityChanged(bool a)
+    signal videoVolumeChanged(int a)
 
     onPlaybackStateChanged: {
         console.log("state "+video.playbackState)
@@ -33,7 +33,20 @@ Video {
         video.videoPositionChanged(video.position);
     }
     onAvailabilityChanged: {
-        vidoe.videoAvailabilityChanged(video.availability);
+
+        //video.videoAvailabilityChanged(video.availability);
+    }
+    onHasVideoChanged: {
+
+        video.videoAvailabilityChanged(video.hasVideo);
+    }
+
+    onVolumeChanged: {
+       var t = video.volume*100;
+        video.videoVolumeChanged(t)
+    }
+    onSourceChanged: {
+        console.log("source:"+video.source);
     }
 
     MouseArea {
@@ -48,26 +61,26 @@ Video {
           properties: "opacity"
           from: 0.0
           to: 1.0
-          duration: 1000
+          duration: 500
           easing {type: Easing.Linear}
      }
     Rectangle{
         id:flashMessageBox
         x: 130
-        y: 419
+        y: 425
         width: 328
-        height: 44
+        height: 35
         color: "#808080"
         radius: 15
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
         anchors.bottomMargin: 17
-        opacity: 0.7
+        opacity: 0
         Text {
             id:flashMessageText
             color: "#ffffff"
             text: "Hello World"
-            font.pointSize: 14
+            font.pointSize: 12
             verticalAlignment: Text.AlignVCenter
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.WordWrap
@@ -80,19 +93,20 @@ Video {
 
     Text {
         id: infoText
-        x: 110
-        width: 588
         height: 32
         opacity: 0.7
         color: "#ffffff"
-        text: qsTr("hi")
+        text: ""
+        anchors.right: parent.right
+        anchors.rightMargin: 25
+        anchors.left: parent.left
+        anchors.leftMargin: 26
         font.bold: true
         verticalAlignment: Text.AlignVCenter
         wrapMode: Text.WordWrap
         anchors.top: parent.top
         anchors.topMargin: 20
-        anchors.horizontalCenter: parent.horizontalCenter
-        font.pointSize: 13
+        font.pointSize: 11
     }
     function setInfoMessage(msg){
         infoText.text=msg
@@ -104,7 +118,7 @@ Video {
     Keys.onRightPressed: video.seek(video.position + 5000)
     Keys.onUpPressed: {
         //video.source = "file:///C:\\Users\\at\\Documents\\qt\\build-helloQML-Desktop_Qt_5_5_1_MSVC2013_64bit-Debug\\_sQSXwdtxlY.mp4"
-        showFlashMessage("hihi",5000);
+        //showFlashMessage("hihi",5000);
     }
 
     Timer {
@@ -113,13 +127,13 @@ Video {
 
    }
     function showFlashMessage(msg,duration){
-        console.log("welcome")
+
         animateOpacity.from=0;
         animateOpacity.to=0.7;
         flashMessageText.text=msg;
         flashTimer.interval = duration;
         flashTimer.triggered.connect(function(){
-            console.log('hi')
+
             animateOpacity.from = 0.7;
             animateOpacity.to=0;
             animateOpacity.start();
