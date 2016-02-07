@@ -17,13 +17,16 @@
 #include "definition.h"
 #include "videodownloader.h"
 #include "videodestroyer.h"
+#include "videoplayer.h"
+#include <QQuickView>
 class VideoController : public QObject
 {
     Q_OBJECT
 private:
-    QWebView * webView;
-    QWebFrame * frame;
-    QVideoWidget * videoWidget;
+
+
+    QQuickView * qmlView;
+    QObject * qmlVideo;
     QNetworkAccessManager qnam;
     bool webReady = false;
     //get title
@@ -46,6 +49,7 @@ private:
     void setCurrentVideo(int id);
 
     void _play();
+    void _stop();
     void _pause();
     void _seekTo(qint64 pos);
     void pickNextVideo();
@@ -94,13 +98,12 @@ private:
     void removeUser(int id);
 
 public:
-    QMediaPlayer player;
-    JsToQtApi * api;
+    VideoPlayer *player;
     NetworkController * netController;
     VideoDownloader * downloader;
     double duration = 0;
     QMap<int, QPair<QString,QString> > links;
-    explicit VideoController(QVideoWidget * view, QObject *parent = 0);
+    explicit VideoController(QQuickView * view, QObject *parent = 0);
     void play();
     void pause();
     void seekTo(qint64 sec);
@@ -151,7 +154,7 @@ private slots:
     void helloClient(Message & msg);
     void heartBeat();
     void stateChanged(QMediaPlayer::State state);
-    void mediaStatusChanged(QMediaPlayer::MediaStatus status);
+    void mediaStatusChanged(int status);
     void onDownloadFinish(bool downloaded, QString title,QString url,  int operation);
     void downloaderError(QString err);
     void positionChanged(qint64 position);

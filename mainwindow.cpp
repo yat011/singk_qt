@@ -73,7 +73,7 @@ MainWindow::MainWindow(QWidget *parent) :
     QMetaObject::invokeMethod(obj,"showFlashMessage",Q_ARG(QVariant,m),Q_ARG(QVariant,d));
     ui->playArea->layout()->addWidget(container);
 
-    video = new VideoController(videoWidget,this);
+    video = new VideoController(qmlVideo,this);
     model = new QStandardItemModel(this);
     ui->listView->setModel(model);
 
@@ -96,8 +96,8 @@ MainWindow::MainWindow(QWidget *parent) :
 
     connect(video,SIGNAL(videoAdded(int,QString)),this,SLOT(videoAdded(int,QString)));
     connect(video,SIGNAL(videoOnPlay(int,QString)),this, SLOT(videoOnPlay(int,QString)));
-    connect(&video->player,SIGNAL(durationChanged(qint64)),this,SLOT(durationChanged(qint64)));
-    connect(&video->player,SIGNAL(positionChanged(qint64)),this,SLOT(positionChanged(qint64)));
+    connect(video->player,SIGNAL(durationChanged(qint64)),this,SLOT(durationChanged(qint64)));
+    connect(video->player,SIGNAL(positionChanged(qint64)),this,SLOT(positionChanged(qint64)));
     connect (video,SIGNAL(consoleRead(QString)),this,SLOT(showConsoleMessage(QString)));
     connect(video->netController,SIGNAL(onlineSig(bool)),this,SLOT(online(bool)));
     connect(video->netController,SIGNAL(offline()),this,SLOT(offline()));
@@ -105,14 +105,14 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(video->netController,SIGNAL(clientInitComplete()),this,SLOT(clientInitComplete()));
     connect(video,SIGNAL(resetPlayList()),this,SLOT(resetList()));
     connect(video->netController,SIGNAL(networkError()),this,SLOT(networkError()));
-    connect(&video->player, SIGNAL(volumeChanged(int)),this,SLOT(volumeChanged(int)));
-    connect(&video->player,SIGNAL(videoAvailableChanged(bool)),this,SLOT(videoAvailableChanged(bool)));
+    connect(video->player, SIGNAL(volumeChanged(int)),this,SLOT(volumeChanged(int)));
+    connect(video->player,SIGNAL(videoAvailableChanged(bool)),this,SLOT(videoAvailableChanged(bool)));
 
     connect(video,&VideoController::informationSet,[=](QString msg){
        //ui->info_label->setText(msg);
     });
 
-    connect(&video->player,&QMediaPlayer::stateChanged,[=](QMediaPlayer::State state){
+   /* connect(video->player,&QMediaPlayer::stateChanged,[=](QMediaPlayer::State state){
         if (state == QMediaPlayer::PlayingState){
              ui->playBtn->setIcon(style()->standardIcon(QStyle::SP_MediaPause));
         }else{
@@ -121,7 +121,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     });
     //connect(videoWidget,SIGNAL(mouseDoubleClickEvent(QMouseEvent * )),this, SLOT(onDoubleClicked(QMoustEvent*)));
-
+*/
     connect(video,&VideoController::userListUpdated, [=](const UserList &ls){
      //  qDebug() <<ls;
          ui->tableWidget->clearContents();
@@ -152,7 +152,7 @@ void MainWindow::on_playBtn_clicked()
     if (lock){
         return;
     }
-    if (video->player.state() == QMediaPlayer::PlayingState){
+    if (video->player->state() == QMediaPlayer::PlayingState){
         video->pause();
     }else{
         video->play();
@@ -351,13 +351,13 @@ void MainWindow::volumeChanged(int volume)
 void MainWindow::on_volumeSpinBox_valueChanged(int arg1)
 {
 
-    video->player.setVolume(arg1);
+    video->player->setVolume(arg1);
 }
 
 void MainWindow::videoAvailableChanged(bool able)
 {
     if (able){
-        ui->volumeSpinBox->setValue(video->player.volume());
+        ui->volumeSpinBox->setValue(video->player->volume());
     }
 }
 

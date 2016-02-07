@@ -6,11 +6,35 @@ Video {
     source: "file:///C:\\Users\\at\\Documents\\qt\\build-helloQML-Desktop_Qt_5_5_1_MSVC2013_64bit-Debug\\R2BUiErBRnY.mp4"
     anchors.fill: parent
 
-    onPlaybackStateChanged: console.log(video.playbackState)
+
+    signal stateChanged(int state)
+    signal mediaStatusChanged (int status)
+    signal videoDurationChanged(int duration)
+    signal videoPositionChanged(int pos)
+    signal videoAvailabilityChanged(int a)
 
 
-    onStatusChanged:  console.log(video.status);
+    onPlaybackStateChanged: {
+        console.log("state "+video.playbackState)
 
+        video.stateChanged(video.playbackState);
+
+    }
+    onStatusChanged:  {
+        console.log("status " +video.status);
+        video.mediaStatusChanged(video.status)
+    }
+
+    onDurationChanged: {
+        video.videoDurationChanged(video.duration);
+    }
+    onPositionChanged: {
+
+        video.videoPositionChanged(video.position);
+    }
+    onAvailabilityChanged: {
+        vidoe.videoAvailabilityChanged(video.availability);
+    }
 
     MouseArea {
         anchors.fill: parent
@@ -30,8 +54,8 @@ Video {
     Rectangle{
         id:flashMessageBox
         x: 130
-        y: 550
-        width: 560
+        y: 419
+        width: 328
         height: 44
         color: "#808080"
         radius: 15
