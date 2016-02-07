@@ -44,7 +44,7 @@ private:
     int vid = 0;
     int currentId =-1;
     int nextVid = -1;
-    bool ended = false;
+
     void getTitle(QString url);
     void setCurrentVideo(int id);
 
@@ -54,7 +54,7 @@ private:
     void _seekTo(qint64 pos);
     void pickNextVideo();
 
-    void suggestPlay(int clientId=-1);
+
    //---- http related
     //int httpOperation = NONE;
 
@@ -104,13 +104,14 @@ public:
     double duration = 0;
     QMap<int, QPair<QString,QString> > links;
     explicit VideoController(QQuickView * view, QObject *parent = 0);
-    void play();
+
     void pause();
     void seekTo(qint64 sec);
     void loadVideo(int id);
     void addVideo(QString url);
     void updateTime();
     bool playable();
+    QUrl getCurrentPath();
     static QString getStateString(int code){
         switch(code){
         case 2:
@@ -145,7 +146,8 @@ signals:
     void userListUpdated(const UserList& ls);
     void userUpdated(const User& u);
     void userRemoved(int id);
-
+public slots:
+     void play();
 private slots:
     void serverStarted();
     void applyAction();
@@ -160,6 +162,7 @@ private slots:
     void onDownloadFinish(bool downloaded, QString title,QString url,  int operation);
     void downloaderError(QString err);
     void positionChanged(qint64 position);
+    void suggestPlay(int clientId=-1);
 };
 
 #endif // VIDEOCONTROLLER_H

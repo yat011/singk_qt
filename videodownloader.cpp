@@ -94,8 +94,7 @@ QString VideoDownloader::extractVid(QString url)
 {
     QRegExp exp("v=([^&]*)&?.*$",Qt::CaseInsensitive);
     exp.indexIn(url);
-
-    qDebug() << exp.capturedTexts();
+   // qDebug() << exp.capturedTexts();
     return exp.capturedTexts()[1];
 }
 

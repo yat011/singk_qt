@@ -31,14 +31,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-    ui->playBtn->setIcon(style()->standardIcon(QStyle::SP_MediaPlay));
-    ui->playBtn->setText("");
-    ui->pauseBtn->setIcon(style()->standardIcon(QStyle::SP_MediaPause));
-    ui->pauseBtn->setText("");
-    ui->pauseBtn->hide();
-    ui->fullScreenBtn->setIcon(style()->standardIcon(QStyle::SP_TitleBarMaxButton));
-    ui->fullScreenBtn->setText("");
-    ui->fullScreenBtn->hide();
+
 
     /*
     connect(video->api,SIGNAL(loaded(double)),this,SLOT(onLoaded(double)));
@@ -94,8 +87,6 @@ MainWindow::MainWindow(QWidget *parent) :
 
     connect(video,SIGNAL(videoAdded(int,QString)),this,SLOT(videoAdded(int,QString)));
     connect(video,SIGNAL(videoOnPlay(int,QString)),this, SLOT(videoOnPlay(int,QString)));
-    connect(video->player,SIGNAL(durationChanged(qint64)),this,SLOT(durationChanged(qint64)));
-    connect(video->player,SIGNAL(positionChanged(qint64)),this,SLOT(positionChanged(qint64)));
     connect (video,SIGNAL(consoleRead(QString)),this,SLOT(showConsoleMessage(QString)));
     connect(video->netController,SIGNAL(onlineSig(bool)),this,SLOT(online(bool)));
     connect(video->netController,SIGNAL(offline()),this,SLOT(offline()));
@@ -103,22 +94,14 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(video->netController,SIGNAL(clientInitComplete()),this,SLOT(clientInitComplete()));
     connect(video,SIGNAL(resetPlayList()),this,SLOT(resetList()));
     connect(video->netController,SIGNAL(networkError()),this,SLOT(networkError()));
-    connect(video->player, SIGNAL(volumeChanged(int)),this,SLOT(volumeChanged(int)));
-    connect(video->player,SIGNAL(videoAvailableChanged(bool)),this,SLOT(videoAvailableChanged(bool)));
+
 
     connect(video,&VideoController::informationSet,[=](QString msg){
         QmlVideoPlayer *qp=  (QmlVideoPlayer*) video->player;
         qp->setInfoMsg(msg);
     });
 
-    connect(video->player,&VideoPlayer::stateChanged,[=](int state){
-        if (state == QMediaPlayer::PlayingState){
-             ui->playBtn->setIcon(style()->standardIcon(QStyle::SP_MediaPause));
-        }else{
-            ui->playBtn->setIcon(style()->standardIcon(QStyle::SP_MediaPlay));
-        }
 
-    });
 
     connect(video,&VideoController::userListUpdated, [=](const UserList &ls){
      //  qDebug() <<ls;
@@ -137,6 +120,13 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(video,&VideoController::userUpdated, [=](const User & user){
        //qDebug() <<"user ping " << user.ping;
     });
+       QmlVideoPlayer *qp=  (QmlVideoPlayer*) video->player;
+       connect (qp,SIGNAL(playPasueButtonClicked()),this,SLOT(on_playBtn_clicked()));
+       connect (qp,&QmlVideoPlayer::timeSliderReleased,[=](int v){
+           if (!lock){
+               video->seekTo(v);
+           }
+       });
 
 }
 
@@ -158,29 +148,8 @@ void MainWindow::on_playBtn_clicked()
 }
 
 
-void MainWindow::on_pauseBtn_clicked()
-{
-    if (lock){
-        return;
-    }
-    video->pause();
-}
 
 
-void MainWindow::on_timeSlider_sliderReleased()
-{
-    if (!lock){
-        video->seekTo(ui->timeSlider->value());
-    }
-    pulling =false;
-}
-
-void MainWindow::on_timeSlider_sliderPressed()
-{
-
-    //video->pause();
-    pulling = true;
-}
 
 void MainWindow::on_addBtn_clicked()
 {
@@ -240,18 +209,6 @@ void MainWindow::videoOnPlay(int id, QString title)
     ui->currentVideoDisplay->setText(title);
 }
 
-void MainWindow::positionChanged(qint64 pos)
-{
-
-    if (!pulling)
-        ui->timeSlider->setValue(pos);
-}
-
-void MainWindow::durationChanged(qint64 duration)
-{
-    qDebug()<<duration;
-    ui->timeSlider->setRange(0,duration);
-}
 
 void MainWindow::on_actionOnline_triggered()
 {
@@ -313,11 +270,6 @@ void MainWindow::offline()
     ui->actionOnline->setText("Online");
 }
 
-void MainWindow::on_fullScreenBtn_clicked()
-{
-    videoWidget->setFullScreen(true);
-}
-
 
 
 void MainWindow::resetList()
@@ -338,29 +290,11 @@ void MainWindow::networkError()
     ui->actionOnline->setText("Online");
 }
 
-void MainWindow::on_volumeSpinBox_editingFinished()
-{
 
-}
 
-void MainWindow::volumeChanged(int volume)
-{
-    ui->volumeSpinBox->setValue(volume);
-}
 
-void MainWindow::on_volumeSpinBox_valueChanged(int arg1)
-{
 
-    video->player->setVolume(arg1);
-}
 
-void MainWindow::videoAvailableChanged(bool able)
-{
-    qDebug() << "ava";
-    if (able){
-        ui->volumeSpinBox->setValue(video->player->volume());
-    }
-}
 
 void MainWindow::resizeEvent(QResizeEvent *event)
 {

@@ -28,13 +28,16 @@ public:
     QString source();
     void showFlashMessage(QString msg);
     void setInfoMsg(QString msg);
+signals:
+    void playPasueButtonClicked();
+    void timeSliderReleased(int);
 private slots:
     void qmlStateChanged(int state);
      void qmlMediaStatusChanged(int status);
       void qmlDurationChanged(int duration);
       void qmlPositionChanged(int pos);
       void qmlAvailabilityChanged(bool a);
-    void testSlot(QString msg);
+    void testSlot();
     void qmlVolumeChanged(int v);
 };
 

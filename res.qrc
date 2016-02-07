@@ -1,5 +1,10 @@
 <RCC>
     <qresource prefix="/">
         <file>video.qml</file>
+        <file>img/1454880632_play-circle-outline.png</file>
+        <file>img/1454880691_pause-circle-outline.png</file>
+        <file>img/1454880768_shuffle.png</file>
+        <file>img/1454880805_device-volume-loudspeaker-speaker-up-glyph.png</file>
+        <file>img/1454880797_device-volume-loudspeaker-speaker-mute-glyph.png</file>
     </qresource>
 </RCC>

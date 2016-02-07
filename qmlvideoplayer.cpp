@@ -12,6 +12,9 @@ QmlVideoPlayer::QmlVideoPlayer(QObject *qml, QQuickView* window, QObject *parent
      QObject::connect(item,SIGNAL(videoDurationChanged(int)),this,SLOT(qmlDurationChanged(int)));
     QObject::connect(item,SIGNAL(videoPositionChanged(int)),this,SLOT(qmlPositionChanged(int)));
     QObject::connect(item,SIGNAL(videoAvailabilityChanged(bool)),this,SLOT(qmlAvailabilityChanged(bool)));
+   // QQuickItem* playPauseBtn = qobject_cast<QQuickItem*>(qml->findChild<QObject*>("playPauseBtn"));
+     QObject::connect(item,SIGNAL(playPasueButtonClicked()),this,SIGNAL(playPasueButtonClicked()));
+        QObject::connect(item,SIGNAL(timeSliderReleased(int)),this,SIGNAL(timeSliderReleased(int)));
 }
 
 void QmlVideoPlayer::play()
@@ -132,9 +135,9 @@ void QmlVideoPlayer::qmlAvailabilityChanged(bool a)
     emit videoAvailableChanged(a);
 }
 
-void QmlVideoPlayer::testSlot(QString msg)
+void QmlVideoPlayer::testSlot()
 {
-    qDebug()<<"test slot:"<<msg;
+    qDebug()<<"test slot:";
 }
 
 void QmlVideoPlayer::qmlVolumeChanged(int v)
