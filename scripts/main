@@ -24,12 +24,12 @@ def main():
     parser.add_argument("--filename", "-f", dest="filename", help=(
         "The filename, without extension, to save the video in."))
     parser.add_argument("--title", "-t", dest="titleOnly", help=("title "))
-
+    parser.add_argument("--list", "-l", dest="listTitle", help=("list "))
     args = parser.parse_args()
-    print (args.titleOnly)
+    
 
     try:
-        yt = YouTube(args.url,args.titleOnly)
+        yt = YouTube(args.url,args.titleOnly,args.listTitle)
         videos = []
         for i, video in enumerate(yt.get_videos()):
             ext = video.extension

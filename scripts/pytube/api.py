@@ -15,6 +15,7 @@ from .models import Video
 from .utils import safe_filename
 
 
+
 log = logging.getLogger(__name__)
 
 # YouTube quality and codecs id map.
@@ -54,7 +55,7 @@ QUALITY_PROFILE_KEYS = (
 class YouTube(object):
     """Class representation of a single instance of a YouTube session.
     """
-    def __init__(self, url=None, titleOnly=None):
+    def __init__(self, url=None, titleOnly=None,listTitle=None):
         """Initializes YouTube API wrapper.
 
         :param str url:
@@ -64,6 +65,7 @@ class YouTube(object):
         self._video_url = None
         self._js_cache = None
         self.titleOnly = titleOnly
+        self.listTitle = listTitle
         self._videos = []
         if url:
             self.from_url(url)
@@ -322,7 +324,15 @@ class YouTube(object):
         else:
             json_start_pattern = bytes("ytplayer.config = ", "utf-8")
 
+
         pattern_idx = html.find(json_start_pattern)
+
+        if self.listTitle !=None:
+            itr=     re.finditer('<li class="yt-uix-scroller-scroll-unit.*?<a href="(.*?)&amp.*?</li>',html,re.DOTALL)
+            for m in itr:       
+                print("{list:https://www.youtube.com"+m.group(1)+"}")
+            sys.exit(0)
+
         # In case video is unable to play
         if(pattern_idx == -1):
             raise PytubeError("Unable to find start pattern.")

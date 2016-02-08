@@ -55,6 +55,10 @@ private slots:
     void networkError();
 
 
+    void on_linkEdit_textChanged(const QString &arg1);
+
+    void on_listAddBtn_clicked();
+
 protected:
     void resizeEvent(QResizeEvent * event);
     void showEvent(QShowEvent *event);

@@ -19,6 +19,12 @@ Rectangle{
     signal videoVolumeChanged(int a)
     signal playPasueButtonClicked()
     signal timeSliderReleased(int value)
+    signal forwardButtonClicked()
+    signal orderButtonClicked()
+    property bool random:false
+    onRandomChanged: {
+        orderImage.source=random?"/img/1454880768_shuffle.png":"/img/1454945111_arrow-right.png"
+    }
     MediaPlayer {
     id: video
     //autoPlay: true
@@ -201,7 +207,24 @@ Rectangle{
 
 
                     }
+                    ToolButton {
+                        id: forwardBtn
+                        anchors.verticalCenter: parent.verticalCenter
+                        onClicked: {
+                            container.forwardButtonClicked()
+                        }
 
+                        Image {
+                            id: forwardImage
+                            fillMode: Image.PreserveAspectFit
+                            anchors.fill: parent
+                            source: "/img/1454937388_black_4_audio_title_forward.png"
+
+                        }
+
+
+
+                    }
                     Row {
                         id: row2
                         width: 200
@@ -235,11 +258,32 @@ Rectangle{
 
                     }
 
+
                     Label {
                         id: timer
                         text: qsTr("0:00/0:00")
                         anchors.verticalCenter: parent.verticalCenter
                     }
+                    ToolButton {
+                        id: orderBtn
+                        anchors.verticalCenter: parent.verticalCenter
+                        onClicked: {
+                            container.orderButtonClicked()
+                        }
+
+
+
+
+
+                        Image {
+                            id: orderImage
+                            fillMode: Image.PreserveAspectFit
+                            anchors.fill: parent
+                            source: "/img/1454945111_arrow-right.png"
+
+                        }
+                    }
+
                 }
             }
             states:[

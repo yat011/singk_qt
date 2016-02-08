@@ -97,6 +97,7 @@ private:
     void updateUser(const User &u);
     void removeUser(int id);
 
+    void suggestRandom(bool r);
 public:
     VideoPlayer *player;
     NetworkController * netController;
@@ -137,6 +138,9 @@ public:
 
 
     bool videoExists(QString title);
+    void nextVideo();
+    void setRandom(bool r);
+    void addVideoFromList(QString url);
 signals:
     void videoAdded(int vid,QString title);
     void videoOnPlay(int vid,QString title);

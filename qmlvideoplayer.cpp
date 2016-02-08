@@ -29,7 +29,8 @@ QmlVideoPlayer::QmlVideoPlayer(QObject *qml, QQuickView* window, QObject *parent
           QObject::connect(qp,SIGNAL(durationChanged(qint64)),this,SLOT(qmlDurationChanged(qint64)));
          QObject::connect(qp,SIGNAL(positionChanged(qint64)),this,SLOT(qmlPositionChanged(qint64)));
          QObject::connect(qp,SIGNAL(availabilityChanged(bool)),this,SLOT(qmlAvailabilityChanged(bool)));
-
+          QObject::connect(item,SIGNAL(forwardButtonClicked()),this,SIGNAL(forwardButtonClicked()));
+ QObject::connect(item,SIGNAL(orderButtonClicked()),this,SIGNAL(orderButtonClicked()));
 }
 
 
@@ -149,6 +150,16 @@ void QmlVideoPlayer::reset()
     //QMediaPlayer *localQMediaPlayer = new QMediaPlayer();
    // QVariant localFromValue = QVariant.fromValue(*localQMediaPlayer);
     //player->setProperty("mediaObject",localFromValue);
+}
+
+bool QmlVideoPlayer::random()
+{
+    return qmlVideo->property("random").toBool();
+}
+
+void QmlVideoPlayer::setRandom(bool r)
+{
+    qmlVideo->setProperty("random",r);
 }
 
 void QmlVideoPlayer::qmlStateChanged(QMediaPlayer::State state)

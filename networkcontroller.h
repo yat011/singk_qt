@@ -19,8 +19,11 @@ private:
     int clientId = 0;
 
 
+    void saveBlockSize(quint32 blockSize, QTcpSocket *socket);
+    quint32 getBlockSize(QTcpSocket *socket);
 public:
     QMap<int, QTcpSocket* >clients;
+    QMap<int,quint32>nextBlockSize;
     explicit NetworkController(QObject *parent = 0);
     bool isHost(){
         return host;
@@ -58,6 +61,9 @@ private slots:
     void clientRead();
     void hostRead();
     void onError(QAbstractSocket::SocketError err);
+    void writeMessage(Message& msg, QTcpSocket * socket);
+    void readMessage(QList<Message*>& out, QTcpSocket *socket);
+
 };
 
 #endif // NETWORKCONTROLLER_H

@@ -127,7 +127,7 @@ MainWindow::MainWindow(QWidget *parent) :
                video->seekTo(v);
            }
        });
-
+    ui->listAddBtn->hide();
 }
 
 MainWindow::~MainWindow()
@@ -162,6 +162,8 @@ void MainWindow::on_addBtn_clicked()
     }else if (ui->linkEdit->text().trimmed()=="s"){
         video->netController->startServer(1234);
         return;
+    }else if (ui->linkEdit->text().trimmed()=="source"){
+        qDebug() << "source:" << video->player->source();
     }
 
     video->addVideo(ui->linkEdit->text().trimmed());
@@ -319,4 +321,21 @@ void MainWindow::showEvent(QShowEvent *event)
      //QObject * obj = (QObject* )qmlVideo->rootObject();
      //obj->setProperty("x",ui->playArea->width());obj->setProperty("y",ui->playArea->height());
 \
+}
+
+void MainWindow::on_linkEdit_textChanged(const QString &arg1)
+{
+    if (VideoDownloader::extractListId(arg1) == ""){
+        ui->listAddBtn->hide();
+    }else{
+        ui->listAddBtn->show();
+    }
+}
+
+void MainWindow::on_listAddBtn_clicked()
+{
+    if (lock){
+        return;
+    }
+    video->addVideoFromList(ui->linkEdit->text());
 }

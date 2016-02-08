@@ -32,9 +32,13 @@ public:
     void showFlashMessage(QString msg);
     void setInfoMsg(QString msg);
     void reset();
+    bool random();
+    void setRandom(bool r);
 signals:
     void playPasueButtonClicked();
     void timeSliderReleased(int);
+    void forwardButtonClicked();
+    void orderButtonClicked();
 private slots:
     void qmlStateChanged(QMediaPlayer::State state);
      void qmlMediaStatusChanged(QMediaPlayer::MediaStatus status);

@@ -67,6 +67,22 @@ VideoController::VideoController(QQuickView *view, QObject *parent) : QObject(pa
         emit consoleRead("client"+QString::number(id)+" disconnected");
         removeUser(id);
     });
+    QmlVideoPlayer * qplayer = (QmlVideoPlayer*) player;
+    connect(qplayer,&QmlVideoPlayer::forwardButtonClicked,[=](){
+
+       nextVideo();
+    });
+    connect(qplayer,&QmlVideoPlayer::orderButtonClicked,[=](){
+
+        setRandom(!qplayer->random());
+    });
+
+    connect(downloader,&VideoDownloader::listReturn,[=](QStringList l){// add video from list
+        for (QString str:l){
+            qDebug()<<"try to add" << str;
+            downloader->getTitle(str,ADD_VIDEO);
+        }
+    });
 
 }
 
@@ -77,27 +93,9 @@ void VideoController::videoEnded()
 {
 
     qDebug() << "ended";
-
-    if (!netController->isOnline()){
-
-
-          if (nextVid!=-1){
-
-              loadVideo(nextVid);
-         }else{
-              pickNextVideo();
-              loadVideo(nextVid);
-         }
-
-    }else{
-
-        if (netController->isHost()){
-             suggestNext();
-
-        }
+    nextVideo();
 
 
-    }
 }
 void VideoController::replyPrePlay( Message &msg){
     Message reply;
@@ -122,6 +120,7 @@ void VideoController::replyPrePlay( Message &msg){
 
 void VideoController::parseMessage(Message &msg)
 {
+     QmlVideoPlayer * qplayer = (QmlVideoPlayer*) player;
     if (!netController->isHost()){
         Message reply;
         switch(msg.getType()){
@@ -199,6 +198,12 @@ void VideoController::parseMessage(Message &msg)
                 qDebug() << "client buffer " << links[msg.getOptId()].first;
                  downloadVideo(links[msg.getOptId()].second);
             }
+            break;
+         case ORDER:
+            emit consoleRead("set Random: "+ QString(msg.getOptId()?"True":"False"));
+
+            qplayer->setRandom(msg.getOptId());
+            break;
         default:
             break;
         }
@@ -224,15 +229,21 @@ void VideoController::parseMessage(Message &msg)
         case SEEK:
             emit consoleRead("client"+QString::number(msg.getClientId())+" seek to "+  QString::number(msg.getTimeAt()/1000));
             suggestSeek(msg.getTimeAt(),msg.getClientId());
-        case CHANGE_TO:
 
-        break;
         case ADD_VIDEO:
             emit consoleRead("client"+QString::number(msg.getClientId())+" add a video");
             hostAddVideo(msg,msg.getClientId());
             break;
         case ECHO:
             updateUser(msg);
+            break;
+        case CHANGE_TO:
+            emit consoleRead("client"+QString::number(msg.getClientId())+" suggest forward");
+            suggestNext();
+            break;
+         case ORDER:
+
+            suggestRandom(!qplayer->random());
             break;
         default:
             break;
@@ -302,9 +313,11 @@ void VideoController::onLoaded(double duration){
 
 void VideoController::helloClient(Message &msg)
 {
-    msg.setLinks(links);
     initMessage(msg);
-
+    msg.setLinks(links);
+    qDebug() <<"hello " << links.count();
+     QmlVideoPlayer * qplayer = (QmlVideoPlayer*) player;
+    msg.setOptId(qplayer->random());
     emit consoleRead("client"+QString::number(msg.getClientId())+" joined");
 }
 
@@ -368,11 +381,13 @@ void VideoController::loadVideo(int id)
 
     if (!links.contains(id)&& id != -1){
         qDebug() << "doesnt not contain video " << id;
+        emit consoleRead("err: does not contain next video infomation");
         return;
     }else{
 
         setCurrentVideo(id);
         if (id == -1){
+             player->setMedia(QUrl());
             qDebug() << "no video";
             return;
         }
@@ -386,34 +401,8 @@ void VideoController::loadVideo(int id)
             qDebug()<<"now load "<< links[id].first;
             QString path = QDir::currentPath()+"/videos/"+yid+".mp4";
             QUrl url = QUrl::fromLocalFile(path);
-          /*
-            if (url.toString() == player->source()){
-                ended=false;
-                if (netController->isOnline()){
-                    if (netController->isHost()){
-                     suggestPlay();
-                    }
-                }else{
-                    play();
-                }
-            }else{
-                player->setMedia(url);
-            }
-            */
-
             player->setMedia(url);
-     /*       if (playable()){
-                if (netController->isOnline()){
-                    if (netController->isHost()){
-                        QMetaObject::invokeMethod(this, "play", Qt::QueuedConnection);
 
-                    }
-                }else{
-                     QMetaObject::invokeMethod(this, "play", Qt::QueuedConnection);
-
-                }
-            }*/
-            nextVid = -1;
         }else{
             qDebug() << "wait for download";
            // emit consoleRead("wait for downloading");
@@ -441,7 +430,7 @@ void VideoController::downloadVideo(QString url){
 
 
     downloader->download(url,BUFFER);
-    emit consoleRead("downloading video");
+   // emit consoleRead("downloading video");
 
 }
 void VideoController::suggestAddVideo(QString title,QString url){
@@ -626,6 +615,7 @@ void VideoController::addVideo(QString url){
         QString id = VideoDownloader::extractVid(url);
         if (id ==""){
             qDebug() << "invalid";
+            emit consoleRead("invalid url");
             return;
         }
 
@@ -638,6 +628,17 @@ void VideoController::addVideo(QString url){
         emit consoleRead("acquiring data");
 
 }
+
+void VideoController::addVideoFromList(QString url){
+    if (""==VideoDownloader::extractListId(url)){
+        qDebug()<<"invalid list url";
+        emit consoleRead("invalid url");
+        return;
+    }
+    downloader->readList(url,LIST);
+    emit consoleRead("acquiring data");
+}
+
 bool VideoController::videoExists(QString title){
     return QFile::exists(QDir::currentPath() + "/videos/" + title + ".mp4");
 }
@@ -650,6 +651,7 @@ void VideoController::onDownloadFinish(bool downloaded, QString title, QString u
             //do sth
             if (links.contains(currentId)){
                 if (links[currentId].first == title){
+                    qDebug() <<"load current" << title << " " << currentId;
                     loadVideo(currentId);
                 }
             }
@@ -756,7 +758,9 @@ void VideoController::clientInit(Message &msg)//just connected to server--- init
     emit resetPlayList();
     currentId = -1;
     loadVideo(currentId);
-    player->setMedia(QUrl());
+   // player->setMedia(QUrl());
+    QmlVideoPlayer * qp = (QmlVideoPlayer*) player;
+    qp->setRandom(msg.getOptId());
     currentSeq = msg.getSeq();
     links = msg.getLinks();
     qDebug() << "init" << links.count();
@@ -797,6 +801,7 @@ void VideoController::setCurrentVideo(int id)
     }else{
         emit videoOnPlay(id,"");
     }
+    nextVid = -1;
 }
 
 void VideoController::_play()
@@ -833,13 +838,40 @@ void VideoController::pickNextVideo()
         qDebug() << "next Video already picked";
         return;
     }
-    for (int key :links.keys()){
-        if (key != currentId){
-            nextVid = key;
-            return;
+    QList<int> localKeys = links.keys();
+    QmlVideoPlayer* qp =(QmlVideoPlayer*) player;
+
+    if (localKeys.count() ==1){
+        if (localKeys[0] == currentId){
+            nextVid = -1;
+        }else{
+            nextVid = localKeys[0];
+            qDebug() << "pick " << nextVid;
+            emit consoleRead("next video:"+links[nextVid].first);
         }
+         return;
     }
-    nextVid =-1;
+    if (localKeys.count() ==0){
+        nextVid = -1;
+        return;
+    }
+    if (!qp->random()){
+        for (int k : localKeys){
+            if (localKeys[k]!= currentId){
+                nextVid= localKeys[k];
+                break;
+            }
+        }
+    }else{
+          int i = rand()%localKeys.count();
+        if (localKeys[i] == currentId){
+            i = (i+1)%localKeys.count();
+        }
+        nextVid = localKeys[i];
+    }
+    qDebug() << "pick " << nextVid;
+    emit consoleRead("next video:"+links[nextVid].first);
+
 }
 void VideoController::initMessage(Message &msg)
 { // for host
@@ -868,7 +900,7 @@ void VideoController::suggestBuffer(){
 
 void VideoController::suggestNext(){
    if (netController->isHost()){
-
+            suggestPause();
              if (nextVid!=-1){
                    loadVideo(nextVid);
                 }else{
@@ -882,8 +914,31 @@ void VideoController::suggestNext(){
             msg.setSeq(++currentSeq);
             netController->broadcastToClients(msg);
            // suggestPlay();
+   }else{
+       Message msg;
+       msg.setType(CHANGE_TO);
+       msg.setClientId(netController->getClientId());
+       netController->sendToHost(msg);
    }
 
+
+}
+
+void VideoController::nextVideo(){
+    if (!netController->isOnline()){
+            pause();
+            qDebug() <<"check";
+          if (nextVid!=-1){
+              loadVideo(nextVid);
+         }else{
+              pickNextVideo();
+              loadVideo(nextVid);
+         }
+
+    }else{
+
+        suggestNext();
+    }
 
 }
 
@@ -1016,6 +1071,37 @@ void VideoController::seekTo(qint64 sec){
 
     }else{
         _seekTo(sec);
+    }
+
+}
+void VideoController::setRandom(bool r){
+
+    if (netController->isOnline()) {
+
+         suggestRandom(r);
+
+    }else{
+         QmlVideoPlayer * qplayer = (QmlVideoPlayer*) player;
+         qplayer->setRandom(r);
+    }
+
+}
+void VideoController::suggestRandom(bool r){
+
+    if (netController->isHost()) {
+         QmlVideoPlayer * qplayer = (QmlVideoPlayer*) player;
+        qplayer->setRandom(r);
+        Message msg;
+        initMessage(msg);
+        msg.setType(ORDER);
+        msg.setOptId(r);
+        netController->broadcastToClients(msg);
+
+    }else{
+        Message msg;
+        msg.setType(ORDER);
+        msg.setClientId(netController->getClientId());
+        netController->sendToHost(msg);
     }
 
 }
