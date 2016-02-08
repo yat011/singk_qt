@@ -4,97 +4,128 @@
 #include <QQuickWindow>
 #include <QQuickView>
 #include <QQuickItem>
+#include <QMediaPlayer>
 QmlVideoPlayer::QmlVideoPlayer(QObject *qml, QQuickView* window, QObject *parent):VideoPlayer(parent),qmlVideo(qml)
 {
     QQuickItem * item = qobject_cast<QQuickItem*> (qml);
-    QObject::connect(item,SIGNAL(stateChanged(int)),this,SLOT(qmlStateChanged(int)));
-     QObject::connect(item,SIGNAL(mediaStatusChanged(int)),this,SLOT(qmlMediaStatusChanged(int)));
-     QObject::connect(item,SIGNAL(videoDurationChanged(int)),this,SLOT(qmlDurationChanged(int)));
-    QObject::connect(item,SIGNAL(videoPositionChanged(int)),this,SLOT(qmlPositionChanged(int)));
-    QObject::connect(item,SIGNAL(videoAvailabilityChanged(bool)),this,SLOT(qmlAvailabilityChanged(bool)));
-   // QQuickItem* playPauseBtn = qobject_cast<QQuickItem*>(qml->findChild<QObject*>("playPauseBtn"));
-     QObject::connect(item,SIGNAL(playPasueButtonClicked()),this,SIGNAL(playPasueButtonClicked()));
-        QObject::connect(item,SIGNAL(timeSliderReleased(int)),this,SIGNAL(timeSliderReleased(int)));
+
+
+        player = qml->findChild<QObject*>("player");
+       qp = qvariant_cast<QMediaPlayer *>(player->property("mediaObject"));
+       /*
+       QObject::connect(item,SIGNAL(stateChanged(int)),this,SLOT(qmlStateChanged(int)));
+        QObject::connect(item,SIGNAL(mediaStatusChanged(int)),this,SLOT(qmlMediaStatusChanged(int)));
+        QObject::connect(item,SIGNAL(videoDurationChanged(int)),this,SLOT(qmlDurationChanged(int)));
+       QObject::connect(item,SIGNAL(videoPositionChanged(int)),this,SLOT(qmlPositionChanged(int)));
+       QObject::connect(item,SIGNAL(videoAvailabilityChanged(bool)),this,SLOT(qmlAvailabilityChanged(bool)));
+      // QQuickItem* playPauseBtn = qobject_cast<QQuickItem*>(qml->findChild<QObject*>("playPauseBtn"));
+        QObject::connect(item,SIGNAL(playPasueButtonClicked()),this,SIGNAL(playPasueButtonClicked()));
+           QObject::connect(item,SIGNAL(timeSliderReleased(int)),this,SIGNAL(timeSliderReleased(int)));
+           */
+       QObject::connect(item,SIGNAL(playPasueButtonClicked()),this,SIGNAL(playPasueButtonClicked()));
+          QObject::connect(item,SIGNAL(timeSliderReleased(int)),this,SIGNAL(timeSliderReleased(int)));
+          connect(qp,SIGNAL(stateChanged(QMediaPlayer::State)),this,SLOT(qmlStateChanged(QMediaPlayer::State)));
+          connect(qp,SIGNAL(mediaStatusChanged(QMediaPlayer::MediaStatus)),this,SLOT(qmlMediaStatusChanged(QMediaPlayer::MediaStatus)));
+          QObject::connect(qp,SIGNAL(durationChanged(qint64)),this,SLOT(qmlDurationChanged(qint64)));
+         QObject::connect(qp,SIGNAL(positionChanged(qint64)),this,SLOT(qmlPositionChanged(qint64)));
+         QObject::connect(qp,SIGNAL(availabilityChanged(bool)),this,SLOT(qmlAvailabilityChanged(bool)));
+
 }
+
+
 
 void QmlVideoPlayer::play()
 {
     qDebug() << "play plz";
-    QMetaObject::invokeMethod(qmlVideo,"play");
+  //  QMediaPlayer *qp = qvariant_cast<QMediaPlayer *>(player->property("mediaObject"));
+    qp->play();
+    // QMetaObject::invokeMethod(player,"play");
 }
 
 void QmlVideoPlayer::pause()
 {
-    QMetaObject::invokeMethod(qmlVideo,"pause");
+   // QMetaObject::invokeMethod(player,"pause");
+    qp->pause();
 }
 
 void QmlVideoPlayer::stop()
 {
-    QMetaObject::invokeMethod(qmlVideo,"stop");
+    //QMetaObject::invokeMethod(player,"stop");
+    qp->stop();
 }
 
 void QmlVideoPlayer::seekTo(qint64 pos)
 {
     QVariant p = pos;
-    QMetaObject::invokeMethod(qmlVideo,"seek",Q_ARG(QVariant,p));
+    //QMetaObject::invokeMethod(player,"seek",Q_ARG(int,pos));
+    qp->setPosition(pos);
 }
 
 void QmlVideoPlayer::load(QString path)
 {
-    qmlVideo->setProperty("source", path);
+   // player->setProperty("source", path);
+
 }
 
 int QmlVideoPlayer::position()
 {
-    return qmlVideo->property("position").toInt();
+    return qp->position();
+
 }
 
 int QmlVideoPlayer::state()
 {
-return qmlVideo->property("playbackState").toInt();
+return qp->state();
 }
 
 int QmlVideoPlayer::mediaStatus()
 {
-return qmlVideo->property("status").toInt();
+return qp->mediaStatus();
 }
 
 QString QmlVideoPlayer::getErrorString()
 {
-    return qmlVideo->property("errorString").toInt();
+    return qp->errorString();
 }
 
 void QmlVideoPlayer::setMedia(QUrl url)
 {
     qDebug()<<"set url"<<url;
-    qmlVideo->setProperty("source", url.toString());
+   // player->setProperty("source", url.toString());
+    qp->setMedia(url);
+
+
 }
 
 bool QmlVideoPlayer::isVideoAvailable()
 {
-   return qmlVideo->property("hasVideo").toBool();
+    return qp->isVideoAvailable();
 }
+
+
 
 qint64 QmlVideoPlayer::duration()
 {
-    return qmlVideo->property("duration").toInt();
+    return qp->duration();
 }
 
 void QmlVideoPlayer::setVolume(int v)
 {
-    double t = v/100.0;
-    qmlVideo->setProperty("volume", t);
+    //double t = v/100.0;
+   // player->setProperty("volume", t);
+    qp->setVolume(v);
 }
 
 int QmlVideoPlayer::volume()
 {
-    double v = qmlVideo->property("volume").toDouble();
-    return (int)(v*100);
+    //double v = player->property("volume").toDouble();
+   // return (int)(v*100);
+    return qp->volume();
 }
 
 QString QmlVideoPlayer::source()
 {
-    return qmlVideo->property("source").toString();
+    return qp->media().canonicalUrl().toString();
 }
 
 void QmlVideoPlayer::showFlashMessage(QString msg)
@@ -110,22 +141,32 @@ void QmlVideoPlayer::setInfoMsg(QString msg)
     QMetaObject::invokeMethod(qmlVideo,"setInfoMessage",Q_ARG(QVariant,m));
 }
 
-void QmlVideoPlayer::qmlStateChanged(int state)
+void QmlVideoPlayer::reset()
+{
+   // setMedia(QUrl());
+    //QMediaPlayer *qp = qvariant_cast<QMediaPlayer *>(player->property("mediaObject"));
+   // qp->setMedia(QMediaContent());
+    //QMediaPlayer *localQMediaPlayer = new QMediaPlayer();
+   // QVariant localFromValue = QVariant.fromValue(*localQMediaPlayer);
+    //player->setProperty("mediaObject",localFromValue);
+}
+
+void QmlVideoPlayer::qmlStateChanged(QMediaPlayer::State state)
 {
     emit stateChanged(state);
 }
 
-void QmlVideoPlayer::qmlMediaStatusChanged(int status)
+void QmlVideoPlayer::qmlMediaStatusChanged(QMediaPlayer::MediaStatus status)
 {
     emit mediaStatusChanged(status);
 }
 
-void QmlVideoPlayer::qmlDurationChanged(int duration)
+void QmlVideoPlayer::qmlDurationChanged(qint64 duration)
 {
     emit durationChanged(duration);
 }
 
-void QmlVideoPlayer::qmlPositionChanged(int pos)
+void QmlVideoPlayer::qmlPositionChanged(qint64 pos)
 {
     emit positionChanged(pos);
 }

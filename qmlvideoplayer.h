@@ -3,12 +3,15 @@
 
 #include "videoplayer.h"
 
+#include <QMediaPlayer>
 #include <QQuickView>
 #include <QQuickWindow>
 class QmlVideoPlayer : public VideoPlayer
 {
 Q_OBJECT
     QObject * qmlVideo;
+    QObject *player;
+    QMediaPlayer * qp;
 public:
     QmlVideoPlayer(QObject * qml, QQuickView *window, QObject * parent=0);
     void play();
@@ -28,14 +31,15 @@ public:
     QString source();
     void showFlashMessage(QString msg);
     void setInfoMsg(QString msg);
+    void reset();
 signals:
     void playPasueButtonClicked();
     void timeSliderReleased(int);
 private slots:
-    void qmlStateChanged(int state);
-     void qmlMediaStatusChanged(int status);
-      void qmlDurationChanged(int duration);
-      void qmlPositionChanged(int pos);
+    void qmlStateChanged(QMediaPlayer::State state);
+     void qmlMediaStatusChanged(QMediaPlayer::MediaStatus status);
+      void qmlDurationChanged(qint64 duration);
+      void qmlPositionChanged(qint64 pos);
       void qmlAvailabilityChanged(bool a);
     void testSlot();
     void qmlVolumeChanged(int v);

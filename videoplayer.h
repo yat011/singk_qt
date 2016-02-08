@@ -25,6 +25,7 @@ public:
     virtual void setVolume(int v)=0;
     virtual int volume()=0;
     virtual QString source()=0;
+    virtual void reset()=0;
 signals:
     void positionChanged(qint64);
     void mediaStatusChanged(int);

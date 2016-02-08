@@ -5,3 +5,4 @@ VideoPlayer::VideoPlayer(QObject *parent) : QObject(parent)
 
 }
 
+

@@ -245,7 +245,7 @@ void VideoController::syncState(const Message &msg){
     if (currentId != msg.getCurrentId()){
         qDebug() <<"sync current";
         emit consoleRead("sync video with host");
-        loadVideo(currentId);
+        loadVideo(msg.getCurrentId());
         return;
     }
     if (!playable()){
@@ -253,7 +253,15 @@ void VideoController::syncState(const Message &msg){
     }
 
     if (abs(player->position()-msg.getTimeAt())> maxDelay && playable()){
-         qDebug() <<"sync time" << msg.getTimeAt() << " " << player->position();
+        qDebug() <<"sync time" << msg.getTimeAt() << " " << player->position();
+         if (msg.getTimeAt() > player->duration()){
+             //unknown error duration 0 -> recover
+             qDebug()<<"try reload ";
+             qDebug() <<"err:" << player->getErrorString();
+             emit consoleRead("unknown, try to reload");
+             loadVideo(msg.getCurrentId());
+             return;
+         }
          emit consoleRead("sync time with host");
         _seekTo(msg.getTimeAt());
     }
@@ -392,8 +400,9 @@ void VideoController::loadVideo(int id)
                 player->setMedia(url);
             }
             */
+
             player->setMedia(url);
-            if (playable()){
+     /*       if (playable()){
                 if (netController->isOnline()){
                     if (netController->isHost()){
                         QMetaObject::invokeMethod(this, "play", Qt::QueuedConnection);
@@ -403,7 +412,7 @@ void VideoController::loadVideo(int id)
                      QMetaObject::invokeMethod(this, "play", Qt::QueuedConnection);
 
                 }
-            }
+            }*/
             nextVid = -1;
         }else{
             qDebug() << "wait for download";
@@ -746,6 +755,8 @@ void VideoController::clientInit(Message &msg)//just connected to server--- init
 
     emit resetPlayList();
     currentId = -1;
+    loadVideo(currentId);
+    player->setMedia(QUrl());
     currentSeq = msg.getSeq();
     links = msg.getLinks();
     qDebug() << "init" << links.count();

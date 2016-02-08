@@ -2,13 +2,15 @@ import QtQuick 2.5
 import QtMultimedia 5.5
 import QtQuick.Controls 1.4
 import QtQuick.Controls.Styles 1.4
-Video {
-    id: video
-
-   // source: "file:///C:\\Users\\at\\Documents\\qt\\build-helloQML-Desktop_Qt_5_5_1_MSVC2013_64bit-Debug\\R2BUiErBRnY.mp4"
+Rectangle{
+    id:container
     anchors.fill: parent
+    color: "#000000"
+    VideoOutput{
+        source: video
+        anchors.fill: parent
 
-
+    }
     signal stateChanged(int state)
     signal mediaStatusChanged (int status)
     signal videoDurationChanged(int duration)
@@ -17,6 +19,13 @@ Video {
     signal videoVolumeChanged(int a)
     signal playPasueButtonClicked()
     signal timeSliderReleased(int value)
+    MediaPlayer {
+    id: video
+    //autoPlay: true
+    //source: "file:///C:\\Users\\at\\Documents\\qt\\build-singk-Desktop_Qt_5_5_1_MSVC2013_64bit-Release\\videos\\wt0RKW3aC84.mp4"
+    objectName: "player"
+
+
     onPlaybackStateChanged: {
         console.log("state "+video.playbackState)
         if (video.playbackState != MediaPlayer.PlayingState){
@@ -25,17 +34,17 @@ Video {
             playPauseImage.source="/img/1454880691_pause-circle-outline.png"
         }
 
-        video.stateChanged(video.playbackState);
+        container.stateChanged(video.playbackState);
 
     }
     onStatusChanged:  {
         console.log("status " +video.status);
-        video.mediaStatusChanged(video.status)
+        container.mediaStatusChanged(video.status)
     }
 
     onDurationChanged: {
         timeSlider.maximumValue=video.duration;
-        video.videoDurationChanged(video.duration);
+        container.videoDurationChanged(video.duration);
     }
     function getTimeString(pos){
         var min = Math.floor(pos/60000);
@@ -49,7 +58,7 @@ Video {
         timer.text = getTimeString(video.position)+"/"+getTimeString(video.duration)
        if (!timeSlider.pressed)
             timeSlider.value = video.position
-        video.videoPositionChanged(video.position);
+        container.videoPositionChanged(video.position);
     }
     onAvailabilityChanged: {
 
@@ -57,12 +66,12 @@ Video {
     }
     onHasVideoChanged: {
 
-        video.videoAvailabilityChanged(video.hasVideo);
+        container.videoAvailabilityChanged(video.hasVideo);
     }
 
     onVolumeChanged: {
        var t = video.volume*100;
-        video.videoVolumeChanged(t)
+        container.videoVolumeChanged(t)
 
     }
     onSourceChanged: {
@@ -76,7 +85,13 @@ Video {
             soundImage.source="/img/1454880805_device-volume-loudspeaker-speaker-up-glyph.png"
         }
     }
+    onErrorStringChanged: {
+        console.log(video.errorString)
+    }
 
+
+
+}
     MouseArea {
         z:1
         id: videoArea
@@ -153,7 +168,7 @@ Video {
 
                         onPressedChanged: {
                             if (!timeSlider.pressed)
-                                video.timeSliderReleased(timeSlider.value)
+                                container.timeSliderReleased(timeSlider.value)
 
                         }
 
@@ -172,7 +187,7 @@ Video {
                         id: playPauseBtn
                         anchors.verticalCenter: parent.verticalCenter
                         onClicked: {
-                            video.playPasueButtonClicked()
+                            container.playPasueButtonClicked()
                         }
 
                         Image {
@@ -294,6 +309,10 @@ Video {
 
 
    }
+    Keys.onUpPressed: {
+        player.play()
+    }
+
     function showFlashMessage(msg,duration){
 
         animateOpacity.from=0;
@@ -310,7 +329,6 @@ Video {
         flashTimer.start()
 
     }
-
 
 
 
