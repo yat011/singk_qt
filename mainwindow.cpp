@@ -20,9 +20,10 @@ class CustomQItem : public  QStandardItem{
 private :
 
 public :
-    CustomQItem(int id, QString t):QStandardItem(t),id(id){
+    CustomQItem(int id, QString t):QStandardItem(t),id(id),title(t){
     }
     int id  ;
+    QString title;
 };
 
 
@@ -67,8 +68,13 @@ MainWindow::MainWindow(QWidget *parent) :
     video = new VideoController(qmlVideo,this);
     model = new QStandardItemModel(this);
     ui->listView->setModel(model);
+    ui->listView->setSelectionMode(QAbstractItemView::SingleSelection);
+    ui->listView->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(ui->listView, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(showContextMenu(QPoint)));
+
 
     ui->tableWidget->setColumnCount(3);
+
     QTableWidgetItem * h1 = new QTableWidgetItem();
     h1->setText("Id");
 
@@ -110,9 +116,16 @@ MainWindow::MainWindow(QWidget *parent) :
         ui->tableWidget->setRowCount(ls.count());
          for (User u :ls){
 
-            ui->tableWidget->setItem(i,0,new QTableWidgetItem(QString::number(u.id)));
-             ui->tableWidget->setItem(i,1,new QTableWidgetItem(QString::number(u.ping)));
-              ui->tableWidget->setItem(i,2,new QTableWidgetItem(VideoController::getStateString(u.state)));
+          QTableWidgetItem* t1=   new QTableWidgetItem(QString::number(u.id));
+           QTableWidgetItem* t2=   new QTableWidgetItem(QString::number(u.ping));
+          QTableWidgetItem* t3=    new QTableWidgetItem(VideoController::getStateString(u.state));
+          t1->setFlags(t1->flags() ^ Qt::ItemIsEditable);
+          t2->setFlags(t2->flags() ^ Qt::ItemIsEditable);
+          t3->setFlags(t3->flags() ^ Qt::ItemIsEditable);
+
+            ui->tableWidget->setItem(i,0,t1);
+             ui->tableWidget->setItem(i,1,t2);
+              ui->tableWidget->setItem(i,2,t3);
               i++;
         }
 
@@ -147,8 +160,28 @@ void MainWindow::on_playBtn_clicked()
     }
 }
 
+void MainWindow::showContextMenu(const QPoint &pos)
+{
+    // Handle global position
+    qDebug() <<"show menu";
+    QPoint globalPos = ui->listView->mapToGlobal(pos);
 
+    // Create menu and insert some actions
+    QMenu myMenu;
+    myMenu.addAction("Play Now", this, SLOT(playItem()));
+   // myMenu.addAction("Erase",  this, SLOT(eraseItem()));
 
+    // Show context menu at handling position
+    myMenu.exec(globalPos);
+}
+void MainWindow::playItem(){
+
+    QStandardItem *localItemFromIndex = model->itemFromIndex(ui->listView->selectionModel()->currentIndex());
+    CustomQItem * item = dynamic_cast<CustomQItem*>(localItemFromIndex);
+    qDebug() << "choose to play" <<  item->id ;
+    video->chooseVideo(item->id);
+
+}
 
 
 void MainWindow::on_addBtn_clicked()
@@ -185,6 +218,7 @@ void MainWindow::showOnlineDialog()
 void MainWindow::videoAdded(int id,QString title){
     qDebug() << id << " " << title;
     CustomQItem* item = new CustomQItem(id,title);
+
     itemMap.insert(id,item);
     item->setEditable(false);
     model->appendRow(item);

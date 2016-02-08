@@ -98,6 +98,7 @@ private:
     void removeUser(int id);
 
     void suggestRandom(bool r);
+    void suggestChooseVideo(int id);
 public:
     VideoPlayer *player;
     NetworkController * netController;
@@ -134,7 +135,7 @@ public:
         }
 
     }
-
+    void chooseVideo(int id);
 
 
     bool videoExists(QString title);

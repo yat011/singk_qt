@@ -242,8 +242,12 @@ void VideoController::parseMessage(Message &msg)
             suggestNext();
             break;
          case ORDER:
-
+            emit consoleRead("client"+QString::number(msg.getClientId())+" set random:"+ QString(msg.getOptId()?"True":"False"));
             suggestRandom(!qplayer->random());
+            break;
+         case CHOOSE:
+            emit consoleRead("client"+QString::number(msg.getClientId())+" choose to play"+links[msg.getOptId()].first);
+            suggestChooseVideo(msg.getOptId());
             break;
         default:
             break;
@@ -645,7 +649,7 @@ bool VideoController::videoExists(QString title){
 
 void VideoController::onDownloadFinish(bool downloaded, QString title, QString url, int operation){
 
-   // qDebug() << title << url << operation;
+    qDebug() <<"acquire fisished" <<  title << url << operation;
     if (title != ""){
         if (operation == BUFFER){
             //do sth
@@ -674,8 +678,8 @@ void VideoController::downloaderError(QString err)
 
 void VideoController::positionChanged(qint64 position)
 {
-    if (nextVid ==-1 && (player->duration()-position) < bufferTime && links.count()>1){
-        //buffer and set next
+    if (nextVid ==-1 && playable() &&(player->duration()-position) < bufferTime && links.count()>1){
+        qDebug()<<"buffer and set next";
         if (!netController->isOnline()){
             pickNextVideo();
             if (!videoExists(VideoDownloader::extractVid(links[nextVid].second))){
@@ -739,6 +743,30 @@ QUrl VideoController::getCurrentPath()
     }else{
         return QUrl();
     }
+}
+
+void VideoController::suggestChooseVideo(int id){
+    if (netController->isHost()){
+       nextVid=id;
+        nextVideo();
+    }else{
+        Message msg;
+        msg.setType(CHOOSE);
+        msg.setOptId(id);
+        netController->sendToHost(msg);
+    }
+}
+
+void VideoController::chooseVideo(int id)
+{
+    if (netController->isOnline()){
+        suggestChooseVideo(id);
+    }else{
+        nextVid=id;
+        nextVideo();
+    }
+
+
 }
 
 void VideoController::serverStarted()
@@ -927,7 +955,7 @@ void VideoController::suggestNext(){
 void VideoController::nextVideo(){
     if (!netController->isOnline()){
             pause();
-            qDebug() <<"check";
+            qDebug() <<"pre -next " << nextVid;
           if (nextVid!=-1){
               loadVideo(nextVid);
          }else{

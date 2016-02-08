@@ -59,6 +59,8 @@ private slots:
 
     void on_listAddBtn_clicked();
 
+    void showContextMenu(const QPoint &pos);
+    void playItem();
 protected:
     void resizeEvent(QResizeEvent * event);
     void showEvent(QShowEvent *event);
