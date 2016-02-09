@@ -141,6 +141,9 @@ MainWindow::MainWindow(QWidget *parent) :
                video->seekTo(v);
            }
        });
+
+
+    connect (video,SIGNAL(videoOnRemoved(int)),this,SLOT(removeFromList(int)));
     ui->listAddBtn->hide();
 }
 
@@ -170,7 +173,7 @@ void MainWindow::showContextMenu(const QPoint &pos)
     // Create menu and insert some actions
     QMenu myMenu;
     myMenu.addAction("Play Now", this, SLOT(playItem()));
-   // myMenu.addAction("Erase",  this, SLOT(eraseItem()));
+    myMenu.addAction("Remove",  this, SLOT(removeItem()));
 
     // Show context menu at handling position
     myMenu.exec(globalPos);
@@ -183,7 +186,14 @@ void MainWindow::playItem(){
     video->chooseVideo(item->id);
 
 }
+void MainWindow::removeItem(){
 
+    QStandardItem *localItemFromIndex = model->itemFromIndex(ui->listView->selectionModel()->currentIndex());
+    CustomQItem * item = dynamic_cast<CustomQItem*>(localItemFromIndex);
+    qDebug() << "choose to remove" <<  item->id ;
+    video->removeVideo(item->id);
+
+}
 
 void MainWindow::on_addBtn_clicked()
 {
@@ -228,10 +238,7 @@ void MainWindow::videoAdded(int id,QString title){
 
 }
 
-void MainWindow::videoOnPlay(int id, QString title)
-{
-    // some checking
-
+void MainWindow::removeFromList(int id){
     if (itemMap.contains(id)){
         qDebug() << "move from list";
 
@@ -242,6 +249,13 @@ void MainWindow::videoOnPlay(int id, QString title)
         itemMap.remove(id);
 
     }
+}
+
+void MainWindow::videoOnPlay(int id, QString title)
+{
+    // some checking
+
+    removeFromList(id);
     qDebug() << "on play";
     ui->currentVideoDisplay->setText(title);
 }

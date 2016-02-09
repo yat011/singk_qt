@@ -86,6 +86,16 @@ VideoController::VideoController(QQuickView *view, QObject *parent) : QObject(pa
 
 }
 
+void VideoController::removeVideo(int id)
+{
+    if (netController->isOnline()){
+        suggestRemoveVideo(id);
+    }else{
+        if (!currentId == id)
+            _removeVideo(id);
+    }
+}
+
 
 
 
@@ -204,6 +214,9 @@ void VideoController::parseMessage(Message &msg)
 
             qplayer->setRandom(msg.getOptId());
             break;
+        case REMOVE:
+            _removeVideo(msg.getOptId());
+            break;
         default:
             break;
         }
@@ -248,6 +261,10 @@ void VideoController::parseMessage(Message &msg)
          case CHOOSE:
             emit consoleRead("client"+QString::number(msg.getClientId())+" choose to play"+links[msg.getOptId()].first);
             suggestChooseVideo(msg.getOptId());
+            break;
+        case REMOVE:
+            emit consoleRead("client"+QString::number(msg.getClientId())+" removes "+links[msg.getOptId()].first);
+            suggestRemoveVideo(msg.getOptId());
             break;
         default:
             break;
@@ -752,6 +769,31 @@ void VideoController::suggestChooseVideo(int id){
     }else{
         Message msg;
         msg.setType(CHOOSE);
+        msg.setOptId(id);
+        netController->sendToHost(msg);
+    }
+}
+
+void VideoController::_removeVideo(int id){
+    links.remove(id);
+    emit videoOnRemoved(id);
+
+}
+
+void VideoController::suggestRemoveVideo(int id)
+{
+    if (netController->isHost()){
+        if (currentId != id){
+            _removeVideo(id);
+            Message msg;
+            initMessage(msg);
+            msg.setType(REMOVE);
+            msg.setOptId(id);
+            netController->broadcastToClients(msg);
+        }
+    }else{
+        Message msg;
+        msg.setType(REMOVE);
         msg.setOptId(id);
         netController->sendToHost(msg);
     }

@@ -61,6 +61,8 @@ private slots:
 
     void showContextMenu(const QPoint &pos);
     void playItem();
+    void removeItem();
+    void removeFromList(int id);
 protected:
     void resizeEvent(QResizeEvent * event);
     void showEvent(QShowEvent *event);

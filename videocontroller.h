@@ -99,6 +99,8 @@ private:
 
     void suggestRandom(bool r);
     void suggestChooseVideo(int id);
+    void suggestRemoveVideo(int id);
+    void _removeVideo(int id);
 public:
     VideoPlayer *player;
     NetworkController * netController;
@@ -106,7 +108,7 @@ public:
     double duration = 0;
     QMap<int, QPair<QString,QString> > links;
     explicit VideoController(QQuickView * view, QObject *parent = 0);
-
+    void removeVideo(int id);
     void pause();
     void seekTo(qint64 sec);
     void loadVideo(int id);
@@ -145,6 +147,7 @@ public:
 signals:
     void videoAdded(int vid,QString title);
     void videoOnPlay(int vid,QString title);
+    void videoOnRemoved(int vid);
     void resetPlayList();
     void consoleRead(QString msg);
     void informationSet(QString msg);
