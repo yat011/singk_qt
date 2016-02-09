@@ -17,13 +17,16 @@
 #include "definition.h"
 #include "videodownloader.h"
 #include "videodestroyer.h"
+#include "videoplayer.h"
+#include <QQuickView>
 class VideoController : public QObject
 {
     Q_OBJECT
 private:
-    QWebView * webView;
-    QWebFrame * frame;
-    QVideoWidget * videoWidget;
+
+
+    QQuickView * qmlView;
+    QObject * qmlVideo;
     QNetworkAccessManager qnam;
     bool webReady = false;
     //get title
@@ -40,17 +43,18 @@ private:
  //---------
     int vid = 0;
     int currentId =-1;
-
     int nextVid = -1;
+
     void getTitle(QString url);
     void setCurrentVideo(int id);
 
     void _play();
+    void _stop();
     void _pause();
     void _seekTo(qint64 pos);
     void pickNextVideo();
 
-    void suggestPlay(int clientId=-1);
+
    //---- http related
     //int httpOperation = NONE;
 
@@ -93,21 +97,23 @@ private:
     void updateUser(const User &u);
     void removeUser(int id);
 
+    void suggestRandom(bool r);
+    void suggestChooseVideo(int id);
 public:
-    QMediaPlayer player;
-    JsToQtApi * api;
+    VideoPlayer *player;
     NetworkController * netController;
     VideoDownloader * downloader;
     double duration = 0;
     QMap<int, QPair<QString,QString> > links;
-    explicit VideoController(QVideoWidget * view, QObject *parent = 0);
-    void play();
+    explicit VideoController(QQuickView * view, QObject *parent = 0);
+
     void pause();
     void seekTo(qint64 sec);
     void loadVideo(int id);
     void addVideo(QString url);
     void updateTime();
     bool playable();
+    QUrl getCurrentPath();
     static QString getStateString(int code){
         switch(code){
         case 2:
@@ -122,15 +128,20 @@ public:
             return "Downloading";
         case NO_MEDIA:
             return "no media";
+        case EndOfMedia:
+            return "end of media";
         default:
             return "unknown";
         }
 
     }
-
+    void chooseVideo(int id);
 
 
     bool videoExists(QString title);
+    void nextVideo();
+    void setRandom(bool r);
+    void addVideoFromList(QString url);
 signals:
     void videoAdded(int vid,QString title);
     void videoOnPlay(int vid,QString title);
@@ -140,7 +151,8 @@ signals:
     void userListUpdated(const UserList& ls);
     void userUpdated(const User& u);
     void userRemoved(int id);
-
+public slots:
+     void play();
 private slots:
     void serverStarted();
     void applyAction();
@@ -151,10 +163,11 @@ private slots:
     void helloClient(Message & msg);
     void heartBeat();
     void stateChanged(QMediaPlayer::State state);
-    void mediaStatusChanged(QMediaPlayer::MediaStatus status);
+    void mediaStatusChanged(int status);
     void onDownloadFinish(bool downloaded, QString title,QString url,  int operation);
     void downloaderError(QString err);
     void positionChanged(qint64 position);
+    void suggestPlay(int clientId=-1);
 };
 
 #endif // VIDEOCONTROLLER_H

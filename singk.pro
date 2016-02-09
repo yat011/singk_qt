@@ -25,7 +25,8 @@ SOURCES += main.cpp\
     user.cpp \
     videodownloader.cpp \
     videoplayer.cpp \
-    videodestroyer.cpp
+    videodestroyer.cpp \
+    qmlvideoplayer.cpp
 
 HEADERS  += mainwindow.h \
     jstoqtapi.h \
@@ -38,7 +39,8 @@ HEADERS  += mainwindow.h \
     videodownloader.h \
     videoplayer.h \
     videodestroyer.h \
-    definition.h
+    definition.h \
+    qmlvideoplayer.h
 
 FORMS    += mainwindow.ui \
     onlinedialog.ui

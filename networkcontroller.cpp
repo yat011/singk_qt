@@ -80,28 +80,30 @@ void NetworkController::newConnection()
 
 
         clients.insert(socket->socketDescriptor(),socket);
+        nextBlockSize[socket->socketDescriptor()] =0;
+
         //welcome msg
         Message msg;
         msg.setType(HELLO);
         msg.setClientId(socket->socketDescriptor());
 
         emit newClientConnected(msg);
-        QByteArray arr;
-        QDataStream out (&arr, QIODevice::WriteOnly);
-        out << msg;
 
-        socket->write(arr);
-        socket->flush();
+        writeMessage(msg,socket);
+
 
 
 }
 
 void NetworkController::hostRead(){
-    QTcpSocket * socket = (QTcpSocket*) sender();
-     QDataStream in(socket->readAll());
-     Message msg ;
-     in >> msg;
-     emit messageComeIn(msg);
+    QTcpSocket* socket = (QTcpSocket*) sender();
+    QList <Message*> out;
+    readMessage(out,socket);
+    for (Message * msg : out){
+        emit messageComeIn(*msg);
+         msg->deleteLater();
+    }
+
 }
 
 void NetworkController::onError(QAbstractSocket::SocketError err)
@@ -111,6 +113,66 @@ void NetworkController::onError(QAbstractSocket::SocketError err)
     QMessageBox::critical(0,"Network err", socket->errorString());
     emit networkError();
 
+}
+
+void NetworkController::writeMessage(Message &msg, QTcpSocket *socket)
+{
+   // qDebug() << "start write message";
+    QByteArray block;
+    QDataStream out(&block,QIODevice::WriteOnly);
+    out<<(quint32) 0;
+    out<< msg;
+    out.device()->seek(0);
+    out <<(quint32)(block.size()-sizeof(quint32));
+
+    socket->write(block);
+    socket->flush();
+   // qDebug() << "written a block";
+
+}
+void NetworkController::saveBlockSize(quint32 blockSize, QTcpSocket *socket){
+    if (isHost()){
+       nextBlockSize[socket->property("id").value<int>()]=blockSize;
+    }else{
+        nextBlockSize[0]=blockSize;
+    }
+}
+quint32 NetworkController::getBlockSize( QTcpSocket *socket){
+    quint32 nb = 0;
+    if (isHost()){
+       nb = nextBlockSize[socket->property("id").value<int>()];
+    }else{
+        nb = nextBlockSize[0];
+    }
+    return nb;
+
+}
+void NetworkController::readMessage(QList<Message*>& out, QTcpSocket *socket)
+{
+    QDataStream in(socket);
+
+    quint32 nb = getBlockSize(socket);
+   // qDebug() << "start read block (remain:" << nb;
+    while(true){
+        if (nb==0){
+            if (socket->bytesAvailable() <sizeof(quint32)){
+               // qDebug()<<"next block size not ready to read";
+                break;
+            }
+            in >> nb;
+        }
+        if (socket->bytesAvailable() < nb){
+            qDebug() << "wait for the whole Message";
+           break;
+        }
+        Message *msg = new Message;
+        in >> *msg;
+       // qDebug() << "a Message read";
+        out.append(msg);
+        nb = 0;
+    }
+    saveBlockSize(nb,socket);
+    return;
 }
 
 void NetworkController::clientDisconnected()
@@ -125,20 +187,21 @@ void NetworkController::clientDisconnected()
 
 void NetworkController::clientRead()
 {
-
-     QDataStream in(cSocket->readAll());
-     Message msg ;
-     in >> msg;
-
-     if (msg.getType() == HELLO){
-        qDebug() << "client Id" << msg.getClientId() << " come";
-        clientId = msg.getClientId();
-        qDebug() << "User" << msg.getUsers().size();
-        emit messageComeIn(msg);
-        emit clientInitComplete();
-     }else{
-         emit messageComeIn(msg);
-     }
+    QTcpSocket* socket = (QTcpSocket*) sender();
+    QList <Message*> out;
+    readMessage(out,socket);
+    for (Message * msg : out){
+         if (msg->getType() == HELLO){
+            qDebug() << "client Id" << msg->getClientId() << " come";
+            clientId = msg->getClientId();
+            qDebug() << "User" << msg->getUsers().size();
+            emit messageComeIn(*msg);
+            emit clientInitComplete();
+         }else{
+             emit messageComeIn(*msg);
+         }
+         msg->deleteLater();
+    }
 
 }
 
@@ -160,27 +223,16 @@ void NetworkController::connectToHost(QString address, int port)
 void NetworkController::broadcastToClients( Message &msg)
 {
    for (QTcpSocket* socket: clients.values()) {
-        QByteArray arr;
-        QDataStream out (&arr, QIODevice::WriteOnly);
-        out << msg;
-        socket->write(arr);
-        if (socket->flush()){
-           // qDebug() << msg.getType() << " written";
-        }
+        writeMessage(msg,socket);
    }
 
 }
 
 void NetworkController::sendToHost(Message &msg)
 {
-       QByteArray arr;
-        QDataStream out (&arr, QIODevice::WriteOnly);
+
         msg.setClientId(clientId);
-        out << msg;
-        cSocket->write(arr);
-        if (cSocket->flush()){
-           // qDebug() << msg.getType() << " written";
-        }
+        writeMessage(msg,cSocket);
 
 }
 
@@ -190,6 +242,7 @@ void NetworkController::connectedToHost() //client
     online= true;
     host =false;
     emit onlineSig(host);
+    nextBlockSize[0]=0;
     connect(cSocket, SIGNAL(readyRead()),this,SLOT(clientRead()));
     connect(cSocket, SIGNAL(disconnected()),this,SLOT(onDisconnectedFromHost()));
 }

@@ -31,18 +31,10 @@ private slots:
     void videoAdded(int id,QString title);
     void videoOnPlay(int id,QString title);
 
-    //void  mediaStateChanged(QMediaPlayer::State state);
-    void positionChanged(qint64 pos);
-    void durationChanged(qint64 duration);
-  //  void  handlePlayerError();
-
-    void on_pauseBtn_clicked();
 
 
 
-    void on_timeSlider_sliderReleased();
 
-    void on_timeSlider_sliderPressed();
 
     void on_addBtn_clicked();
     void on_actionOnline_triggered();
@@ -57,15 +49,18 @@ private slots:
     void showConsoleMessage(QString msg);
     void online(bool host);
     void offline();
-    void on_fullScreenBtn_clicked();
+
     void resetList();
     void clientInitComplete();
     void networkError();
-    void on_volumeSpinBox_editingFinished();
-    void volumeChanged(int volume);
 
-    void on_volumeSpinBox_valueChanged(int arg1);
-    void videoAvailableChanged(bool able);
+
+    void on_linkEdit_textChanged(const QString &arg1);
+
+    void on_listAddBtn_clicked();
+
+    void showContextMenu(const QPoint &pos);
+    void playItem();
 protected:
     void resizeEvent(QResizeEvent * event);
     void showEvent(QShowEvent *event);
