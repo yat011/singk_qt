@@ -87,6 +87,7 @@ VideoController::VideoController(QQuickView *view, QObject *parent) : QObject(pa
        //reset
         delay = minDelay;
         firstLoad =true;
+        timeout = delay;
     });
 
 }
@@ -283,6 +284,7 @@ void VideoController::parseMessage(Message &msg)
 void VideoController::syncState(const Message &msg, bool changeDelay){
     //check if sync
 
+    qint64 currentDelay = abs(player->position()-msg.getTimeAt());
     if (currentId != msg.getCurrentId()){
         qDebug() <<"sync current";
         emit consoleRead("sync video with host");
@@ -295,17 +297,10 @@ void VideoController::syncState(const Message &msg, bool changeDelay){
         return;
     }
 
-    qint64 diff = abs(player->position()-msg.getTimeAt());
-    qint64 tempD = delay;
-    if (changeDelay&&!firstLoad){
-         delay = diff*0.1 + delay*0.9;
-        if (delay <minDelay)
-            delay = minDelay;
-     }
-    qDebug() <<"current delay" << delay;
-    if (diff> tempD && playable()){
-        if (changeDelay&&!firstLoad)
-             delay = diff *0.3 + tempD*0.7;
+
+
+    if (currentDelay > timeout && playable()){
+
         qDebug() <<"sync time" << msg.getTimeAt() << " " << player->position();
          if (msg.getTimeAt() > player->duration()){
              //unknown error duration 0 -> recover
@@ -315,7 +310,7 @@ void VideoController::syncState(const Message &msg, bool changeDelay){
              loadVideo(msg.getCurrentId());
              return;
          }
-         emit consoleRead("sync time(change delay threshold:"+QString::number(delay)+")");
+         emit consoleRead("sync time(change delay timeout:"+QString::number(timeout)+")");
         _seekTo(msg.getTimeAt());
     }
     if (player->state()== QMediaPlayer::PlayingState && msg.getCurrentState()!=QMediaPlayer::PlayingState){
@@ -329,6 +324,21 @@ void VideoController::syncState(const Message &msg, bool changeDelay){
         _play();
         _seekTo(msg.getTimeAt());
     }
+    // calculate timeout
+
+
+
+    if (changeDelay&&!firstLoad){
+        qDebug()<< "currentDelay" << currentDelay;
+        double tempD = delay;
+        delay = (1-alpha)*delay + alpha *currentDelay;
+        double diff = abs(currentDelay - tempD);
+        qDebug() << diff;
+         prevDev = (1-beta) *prevDev + beta* diff;
+         qDebug()<< "dev " << prevDev;
+        timeout = 4* prevDev  + delay;
+     }
+    qDebug() <<"current timeout"<< timeout;
     firstLoad=false;
 
 }
