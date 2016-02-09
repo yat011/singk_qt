@@ -62,6 +62,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     qmlVideo = new QQuickView();
     qmlVideo->engine()->addImportPath("C:\\Qt\\5.5\\msvc2013_64\\qml");
+    qmlVideo->engine()->addImportPath("/Users/yat/Qt/5.5/clang_64/qml");
     container = QWidget::createWindowContainer(qmlVideo);
     container->setStyleSheet("background-color: rgb(7, 7, 7);");
     qmlVideo->setMinimumSize(QSize(500,500));
