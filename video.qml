@@ -97,7 +97,7 @@ Rectangle{
 
 
 
-}
+    }
     MouseArea {
         z:1
         id: videoArea
@@ -135,6 +135,26 @@ Rectangle{
 
 
             }
+            states:[
+                State{
+                    name :"show"
+                    PropertyChanges {
+                        target: flashMessageBox
+                        opacity:0.7
+                    }
+                }
+            ]
+            transitions: [
+                // This adds a transition that defaults to applying to all state changes
+
+                Transition {
+
+                    NumberAnimation { properties: "opacity"
+                        duration: 400
+                        easing.type:  Easing.Linear
+                    }
+                }
+            ]
         }
         Rectangle {
             z:1
@@ -177,7 +197,23 @@ Rectangle{
                                 container.timeSliderReleased(timeSlider.value)
 
                         }
-
+                        style: SliderStyle {
+                            groove: Rectangle {
+                                implicitWidth: 200
+                                implicitHeight: 8
+                                color: "gray"
+                                radius: 8
+                            }
+                            handle: Rectangle {
+                                anchors.centerIn: parent
+                                color: control.pressed ? "white" : "lightgray"
+                                border.color: "gray"
+                                border.width: 2
+                                width: 16
+                                height: 16
+                                radius: 12
+                            }
+                        }
                     }
 
                 }
@@ -195,7 +231,35 @@ Rectangle{
                         onClicked: {
                             container.playPasueButtonClicked()
                         }
+                        style: ButtonStyle {
+                                background: Rectangle {
+                                    implicitWidth: 30
+                                    implicitHeight: 30
+                                    border.width: control.activeFocus ? 2 : 1
+                                    border.color: {
+                                        if (control.hovered){
+                                           return "blue"
+                                        }
+                                        if (control.pressed){
+                                            return "#000"
+                                        }
+                                        return "transparent"
+                                    }
+                                    color:{
+                                        if (control.pressed){
+                                            return "#fff"
+                                        }
+                                        if (control.hovered){
+                                            return "lightblue"
+                                        }
 
+                                         return "transparent"
+
+                                    }
+                                    radius: 4
+
+                                }
+                            }
                         Image {
                             id: playPauseImage
                             fillMode: Image.PreserveAspectFit
@@ -222,7 +286,35 @@ Rectangle{
 
                         }
 
+                        style: ButtonStyle {
+                                background: Rectangle {
+                                    implicitWidth: 30
+                                    implicitHeight: 30
+                                    border.width: control.activeFocus ? 2 : 1
+                                    border.color: {
+                                        if (control.hovered){
+                                           return "blue"
+                                        }
+                                        if (control.pressed){
+                                            return "#000"
+                                        }
+                                        return "transparent"
+                                    }
+                                    color:{
+                                        if (control.pressed){
+                                            return "#fff"
+                                        }
+                                        if (control.hovered){
+                                            return "lightblue"
+                                        }
 
+                                         return "transparent"
+
+                                    }
+                                    radius: 4
+
+                                }
+                            }
 
                     }
                     Row {
@@ -244,6 +336,35 @@ Rectangle{
                                 source: "/img/1454880805_device-volume-loudspeaker-speaker-up-glyph.png"
 
                             }
+                            style: ButtonStyle {
+                                    background: Rectangle {
+                                        implicitWidth: 30
+                                        implicitHeight: 30
+                                        border.width: control.activeFocus ? 2 : 1
+                                        border.color: {
+                                            if (control.hovered){
+                                               return "blue"
+                                            }
+                                            if (control.pressed){
+                                                return "#000"
+                                            }
+                                            return "transparent"
+                                        }
+                                        color:{
+                                            if (control.pressed){
+                                                return "#fff"
+                                            }
+                                            if (control.hovered){
+                                                return "lightblue"
+                                            }
+
+                                             return "transparent"
+
+                                        }
+                                        radius: 4
+
+                                    }
+                                }
                         }
 
                         Slider {
@@ -272,7 +393,35 @@ Rectangle{
                         }
 
 
+                        style: ButtonStyle {
+                                background: Rectangle {
+                                    implicitWidth: 30
+                                    implicitHeight: 30
+                                    border.width: control.activeFocus ? 2 : 1
+                                    border.color: {
+                                        if (control.hovered){
+                                           return "blue"
+                                        }
+                                        if (control.pressed){
+                                            return "#000"
+                                        }
+                                        return "transparent"
+                                    }
+                                    color:{
+                                        if (control.pressed){
+                                            return "#fff"
+                                        }
+                                        if (control.hovered){
+                                            return "lightblue"
+                                        }
 
+                                         return "transparent"
+
+                                    }
+                                    radius: 4
+
+                                }
+                            }
 
 
                         Image {
@@ -316,15 +465,6 @@ Rectangle{
         }
 
     }
-    NumberAnimation {
-          id: animateOpacity
-          target: flashMessageBox
-          properties: "opacity"
-          from: 0.0
-          to: 1.0
-          duration: 500
-          easing {type: Easing.Linear}
-     }
 
 
     Text {
@@ -343,6 +483,7 @@ Rectangle{
         anchors.top: parent.top
         anchors.topMargin: 20
         font.pointSize: 11
+
     }
     function setInfoMessage(msg){
         infoText.text=msg
@@ -350,27 +491,22 @@ Rectangle{
 
     Timer {
         id: flashTimer
-
+        onTriggered: {
+            console.log("hide info")
+            flashMessageBox.state=''
+        }
 
    }
-    Keys.onUpPressed: {
-        player.play()
-    }
+
 
     function showFlashMessage(msg,duration){
 
-        animateOpacity.from=0;
-        animateOpacity.to=0.7;
-        flashMessageText.text=msg;
-        flashTimer.interval = duration;
-        flashTimer.triggered.connect(function(){
 
-            animateOpacity.from = 0.7;
-            animateOpacity.to=0;
-            animateOpacity.start();
-        })
-        animateOpacity.start()
+        flashTimer.stop()
+        flashTimer.interval = duration;
         flashTimer.start()
+        flashMessageText.text=msg
+        flashMessageBox.state='show'
 
     }
 
