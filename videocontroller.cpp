@@ -83,6 +83,12 @@ VideoController::VideoController(QQuickView *view, QObject *parent) : QObject(pa
         }
     });
 
+    connect(netController,&NetworkController::onlineSig,[=](){
+       //reset
+        delay = minDelay;
+        firstLoad =true
+    });
+
 }
 
 void VideoController::removeVideo(int id)
@@ -150,7 +156,7 @@ void VideoController::parseMessage(Message &msg)
             qDebug() << "client play";
             currentSeq = msg.getSeq();
             _play();
-            //syncState(msg);
+
         }
 
             break;
@@ -274,29 +280,42 @@ void VideoController::parseMessage(Message &msg)
 
     }
 }
-void VideoController::syncState(const Message &msg){
+void VideoController::syncState(const Message &msg, bool changeDelay){
     //check if sync
+
     if (currentId != msg.getCurrentId()){
         qDebug() <<"sync current";
         emit consoleRead("sync video with host");
         loadVideo(msg.getCurrentId());
+        firstLoad=true;
         return;
     }
     if (!playable()){
+        firstLoad=true;
         return;
     }
 
-    if (abs(player->position()-msg.getTimeAt())> maxDelay && playable()){
+    qint64 diff = abs(player->position()-msg.getTimeAt());
+    qint64 tempD = delay;
+    if (changeDelay&&!firstLoad){
+         delay = diff*0.1 + delay*0.9;
+        if (delay <minDelay)
+            delay = minDelay;
+     }
+    qDebug() <<"current delay" << delay;
+    if (diff> tempD && playable()){
+        if (changeDelay&&!firstLoad)
+             delay = diff *0.3 + tempD*0.7;
         qDebug() <<"sync time" << msg.getTimeAt() << " " << player->position();
          if (msg.getTimeAt() > player->duration()){
              //unknown error duration 0 -> recover
              qDebug()<<"try reload ";
              qDebug() <<"err:" << player->getErrorString();
-             emit consoleRead("unknown, try to reload");
+             emit consoleRead("unknown err, try to reload");
              loadVideo(msg.getCurrentId());
              return;
          }
-         emit consoleRead("sync time with host");
+         emit consoleRead("sync time(change delay threshold:"+QString::number(delay)+")");
         _seekTo(msg.getTimeAt());
     }
     if (player->state()== QMediaPlayer::PlayingState && msg.getCurrentState()!=QMediaPlayer::PlayingState){
@@ -310,6 +329,7 @@ void VideoController::syncState(const Message &msg){
         _play();
         _seekTo(msg.getTimeAt());
     }
+    firstLoad=false;
 
 }
 
@@ -855,7 +875,7 @@ void VideoController::clientInit(Message &msg)//just connected to server--- init
             emit videoAdded(vid,links[vid].first);
         }
     }
-    syncState(msg);
+    syncState(msg,false);
 }
 
 

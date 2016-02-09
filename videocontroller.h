@@ -69,7 +69,10 @@ private:
     void suggestPause(int clientId=-1);
     void initMessage(Message &msg);
     const int beatInterval = 2000;
-    qint64 maxDelay = 500;
+    qint64 minDelay = 100;
+    qint64 delay = 300;
+    bool firstLoad =true;
+
     int waitTime = 4000;
     int bufferTime =10000;
     void _addVideo(QString title, QString url);
@@ -78,7 +81,7 @@ private:
     bool videoLoaded = false;
     void replyPrePlay(Message& msg);
     void suggestSeek(qint64 sec,int clientId=-1);
-    void syncState(const Message &msg);
+    void syncState(const Message &msg, bool changeDelay=true);
     void suggestNext();
     void suggestAddVideo(QString title, QString url);
     void clientAddVideo(Message &msg);
