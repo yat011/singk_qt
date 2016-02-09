@@ -86,7 +86,7 @@ VideoController::VideoController(QQuickView *view, QObject *parent) : QObject(pa
     connect(netController,&NetworkController::onlineSig,[=](){
        //reset
         delay = minDelay;
-        firstLoad =true
+        firstLoad =true;
     });
 
 }
