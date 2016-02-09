@@ -100,6 +100,7 @@ void NetworkController::hostRead(){
     QList <Message*> out;
     readMessage(out,socket);
     for (Message * msg : out){
+    //    qDebug()<<"host read" << msg->type;
         emit messageComeIn(*msg);
          msg->deleteLater();
     }
@@ -127,6 +128,7 @@ void NetworkController::writeMessage(Message &msg, QTcpSocket *socket)
 
     socket->write(block);
     socket->flush();
+  //  qDebug()<<"net send: type" << msg.type;
    // qDebug() << "written a block";
 
 }
@@ -162,16 +164,18 @@ void NetworkController::readMessage(QList<Message*>& out, QTcpSocket *socket)
             in >> nb;
         }
         if (socket->bytesAvailable() < nb){
-            qDebug() << "wait for the whole Message";
+          //  qDebug() << "wait for the whole Message";
            break;
         }
         Message *msg = new Message;
         in >> *msg;
+       //  qDebug()<<"net read: type" << msg->type;
        // qDebug() << "a Message read";
         out.append(msg);
         nb = 0;
     }
     saveBlockSize(nb,socket);
+  //  qDebug()<<"total read" << out.size();
     return;
 }
 

@@ -33,7 +33,7 @@ public:
     static QString extractListId(QString url);
 signals:
     void finish(bool result, QString title,QString url, int operation);
-    void listReturn (QStringList sl);
+    void listReturn (QStringList titles, QStringList sl);
     void errorSig(QString error);
     void downloadProgress(QString title,double progress);
 public slots:

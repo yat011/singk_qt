@@ -328,9 +328,9 @@ class YouTube(object):
         pattern_idx = html.find(json_start_pattern)
 
         if self.listTitle !=None:
-            itr=     re.finditer('<li class="yt-uix-scroller-scroll-unit.*?<a href="(.*?)&amp.*?</li>',html,re.DOTALL)
+            itr=     re.finditer('<li class="yt-uix-scroller-scroll-unit.*?data-video-title="(.*?)".*?<a href="(.*?)&amp.*?</li>',html,re.DOTALL)
             for m in itr:       
-                print("{list:https://www.youtube.com"+m.group(1)+"}")
+                print("{list:"+m.group(1)+":::https://www.youtube.com"+m.group(2)+"}")
             sys.exit(0)
 
         # In case video is unable to play

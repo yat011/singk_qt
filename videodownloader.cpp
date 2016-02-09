@@ -114,6 +114,7 @@ void VideoDownloader::readList(QString url, int operation)
     process->setProperty("url",url);
     process->setProperty("operation",operation);
     process->setProperty("list",QStringList());
+    process->setProperty("listTitle",QStringList());
     QStringList args;
     if (!QDir("videos").exists()){
         QDir().mkdir("videos");
@@ -170,7 +171,8 @@ void VideoDownloader::onFinished(int exitCode, QProcess::ExitStatus exit)
     }else{
         if (op == LIST){
             QStringList sl = process->property("list").value<QStringList>();
-            emit listReturn(sl);
+            QStringList tl = process->property("listTitle").value<QStringList>();
+            emit listReturn(tl,sl);
 
         }else{
 
@@ -229,13 +231,14 @@ void VideoDownloader::readyReadStandardOutput()
             double progress = QString(exp2.capturedTexts()[1]).toDouble();
             emit downloadProgress(title,progress);
         }
-        QRegExp exp3("\\{list:(.*)\\}",Qt::CaseInsensitive);
-
+        QRegExp exp3("\\{list:(.+):::(.+)\\}",Qt::CaseInsensitive);
         if (exp3.indexIn(str)!=-1){
             QStringList nl  = process->property("list").value<QStringList>();
-
-            nl << exp3.capturedTexts()[1];
+            QStringList nt  = process->property("listTitle").value<QStringList>();
+            nt << exp3.capturedTexts()[1];
+            nl << exp3.capturedTexts()[2];
             process->setProperty("list",nl);
+            process->setProperty("listTitle",nt);
 
         }
 

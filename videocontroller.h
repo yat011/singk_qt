@@ -99,7 +99,7 @@ private:
 
     void suggestRandom(bool r);
     void suggestChooseVideo(int id);
-    void suggestRemoveVideo(int id);
+    void suggestRemoveVideo(int id, int clientId=-1);
     void _removeVideo(int id);
 public:
     VideoPlayer *player;

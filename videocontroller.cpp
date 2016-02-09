@@ -77,10 +77,9 @@ VideoController::VideoController(QQuickView *view, QObject *parent) : QObject(pa
         setRandom(!qplayer->random());
     });
 
-    connect(downloader,&VideoDownloader::listReturn,[=](QStringList l){// add video from list
-        for (QString str:l){
-            qDebug()<<"try to add" << str;
-            downloader->getTitle(str,ADD_VIDEO);
+    connect(downloader,&VideoDownloader::listReturn,[=](QStringList t, QStringList urls){// add video from list
+        for (int i =0;i <t.size();i++){
+            _addVideo(t[i],urls[i]);
         }
     });
 
@@ -179,6 +178,7 @@ void VideoController::parseMessage(Message &msg)
                     emit consoleRead("client"+QString::number(msg.getClientId())+" seek to "+  QString::number(msg.getTimeAt()/1000)+"sec");
                 }
             }
+            break;
         case CHANGE_TO:
             if (currentSeq<msg.getSeq()){
                 qDebug()<< "client change To";
@@ -195,6 +195,7 @@ void VideoController::parseMessage(Message &msg)
             replyHeartBeat(msg);
             break;
         case ADD_VIDEO:
+            qDebug() << "client receive add_video msg";
             if (msg.getClientId()==-1){
                 emit consoleRead("host add a video");
             }else{
@@ -215,6 +216,7 @@ void VideoController::parseMessage(Message &msg)
             qplayer->setRandom(msg.getOptId());
             break;
         case REMOVE:
+            emit consoleRead("client"+QString::number(msg.getClientId())+" removes "+links[msg.getOptId()].first);
             _removeVideo(msg.getOptId());
             break;
         default:
@@ -242,7 +244,7 @@ void VideoController::parseMessage(Message &msg)
         case SEEK:
             emit consoleRead("client"+QString::number(msg.getClientId())+" seek to "+  QString::number(msg.getTimeAt()/1000));
             suggestSeek(msg.getTimeAt(),msg.getClientId());
-
+            break;
         case ADD_VIDEO:
             emit consoleRead("client"+QString::number(msg.getClientId())+" add a video");
             hostAddVideo(msg,msg.getClientId());
@@ -264,7 +266,7 @@ void VideoController::parseMessage(Message &msg)
             break;
         case REMOVE:
             emit consoleRead("client"+QString::number(msg.getClientId())+" removes "+links[msg.getOptId()].first);
-            suggestRemoveVideo(msg.getOptId());
+            suggestRemoveVideo(msg.getOptId(),msg.getClientId());
             break;
         default:
             break;
@@ -503,6 +505,7 @@ void VideoController::clientAddVideo(Message &msg){
 
 }
 void VideoController::hostAddVideo(Message &msg,int clientId){
+    qDebug()<<"host receive add_video";
     links[vid] = msg.getLink(msg.getOptId());
     if (currentId == -1){//--if no video--
          qDebug() << "no video";
@@ -671,7 +674,9 @@ void VideoController::onDownloadFinish(bool downloaded, QString title, QString u
         if (operation == BUFFER){
             //do sth
             if (links.contains(currentId)){
-                if (links[currentId].first == title){
+                qDebug()<<"contains currentId" << currentId;
+                qDebug()<<"current title" << links[currentId].first;
+                if (links[currentId].second == url){
                     qDebug() <<"load current" << title << " " << currentId;
                     loadVideo(currentId);
                 }
@@ -780,7 +785,7 @@ void VideoController::_removeVideo(int id){
 
 }
 
-void VideoController::suggestRemoveVideo(int id)
+void VideoController::suggestRemoveVideo(int id,int clientId)
 {
     if (netController->isHost()){
         if (currentId != id){
@@ -789,6 +794,7 @@ void VideoController::suggestRemoveVideo(int id)
             initMessage(msg);
             msg.setType(REMOVE);
             msg.setOptId(id);
+            msg.setClientId(clientId);
             netController->broadcastToClients(msg);
         }
     }else{
@@ -904,7 +910,7 @@ void VideoController::_seekTo(qint64 pos)
 
 void VideoController::pickNextVideo()
 {
-    if (nextVid!=-1){
+    if (nextVid!=-1 && links.contains(nextVid)){
         qDebug() << "next Video already picked";
         return;
     }
@@ -971,13 +977,10 @@ void VideoController::suggestBuffer(){
 void VideoController::suggestNext(){
    if (netController->isHost()){
             suggestPause();
-             if (nextVid!=-1){
-                   loadVideo(nextVid);
-                }else{
-                    pickNextVideo();
-                    loadVideo(nextVid);
-             }
-
+            if (nextVid == -1 || !links.contains(nextVid)){
+                pickNextVideo();
+            }
+            loadVideo(nextVid);
             Message msg;
             initMessage(msg);
             msg.setType(CHANGE_TO);
@@ -998,12 +1001,10 @@ void VideoController::nextVideo(){
     if (!netController->isOnline()){
             pause();
             qDebug() <<"pre -next " << nextVid;
-          if (nextVid!=-1){
-              loadVideo(nextVid);
-         }else{
+          if (nextVid == -1 || !links.contains(nextVid)){
               pickNextVideo();
-              loadVideo(nextVid);
-         }
+          }
+           loadVideo(nextVid);
 
     }else{
 
