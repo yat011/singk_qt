@@ -1036,6 +1036,16 @@ void VideoController::initMessage(Message &msg)
       msg.setCurrentState(player->state());
       msg.setTimeStamp(QDateTime::currentMSecsSinceEpoch());
 }
+
+double VideoController::getMinDelay() const
+{
+    return minDelay;
+}
+
+void VideoController::setMinDelay(double value)
+{
+    minDelay = value;
+}
 void VideoController::suggestBuffer(){
     if (netController->isHost()){
         qDebug() <<"host buffer";

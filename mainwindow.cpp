@@ -212,6 +212,10 @@ void MainWindow::on_addBtn_clicked()
     }else if (ui->linkEdit->text().trimmed()=="count"){
         qDebug() << "links:" << video->links.count();
         return;
+    }else if (ui->linkEdit->text().trimmed().contains("min:")){
+        qDebug() << "mins:" << ui->linkEdit->text().trimmed().mid(4);
+        video->setMinDelay(ui->linkEdit->text().trimmed().mid(4).toDouble());
+        return;
     }
 
     video->addVideo(ui->linkEdit->text().trimmed());

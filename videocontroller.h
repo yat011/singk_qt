@@ -154,6 +154,9 @@ public:
     void nextVideo();
     void setRandom(bool r);
     void addVideoFromList(QString url);
+    double getMinDelay() const;
+    void setMinDelay(double value);
+
 signals:
     void videoAdded(int vid,QString title);
     void videoOnPlay(int vid,QString title);
