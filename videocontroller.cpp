@@ -772,6 +772,11 @@ void VideoController::positionChanged(qint64 position)
 
 
 void VideoController::_addVideo(QString title,QString url){
+    if (title ==""){
+        qDebug() <<"reject empty title" ;
+        emit consoleRead("reject empty title video");
+    }
+
 
     if (netController->isOnline()){
         suggestAddVideo(title,url);
