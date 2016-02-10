@@ -208,6 +208,10 @@ void MainWindow::on_addBtn_clicked()
         return;
     }else if (ui->linkEdit->text().trimmed()=="source"){
         qDebug() << "source:" << video->player->source();
+        return;
+    }else if (ui->linkEdit->text().trimmed()=="count"){
+        qDebug() << "links:" << video->links.count();
+        return;
     }
 
     video->addVideo(ui->linkEdit->text().trimmed());

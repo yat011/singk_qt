@@ -97,7 +97,7 @@ void VideoController::removeVideo(int id)
     if (netController->isOnline()){
         suggestRemoveVideo(id);
     }else{
-        if (!currentId == id)
+        if (currentId != id)
             _removeVideo(id);
     }
 }
@@ -1010,9 +1010,9 @@ void VideoController::pickNextVideo()
     }
     if (!qp->random()){
         qDebug() <<"not random";
-        for (int k : localKeys){
-            if (localKeys[k]!= currentId){
-                nextVid= localKeys[k];
+        for (int id : localKeys){
+            if (id!= currentId){
+                nextVid= id;
                 break;
             }
         }
