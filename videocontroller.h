@@ -108,6 +108,7 @@ private:
     void suggestChooseVideo(int id);
     void suggestRemoveVideo(int id, int clientId=-1);
     void _removeVideo(int id);
+    void estimateDelay(qint64 hostTimeStamp);
 public:
     VideoPlayer *player;
     NetworkController * netController;

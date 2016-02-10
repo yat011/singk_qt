@@ -177,7 +177,7 @@ void VideoController::parseMessage(Message &msg)
             if (currentSeq<msg.getSeq()){
                 qDebug()<< "client seek";
                 currentSeq = msg.getSeq();
-                _seekTo(msg.getTimeAt());
+                _seekTo(msg.getTimeAt()+delay);
                 if (msg.getClientId()==-1){
                     emit consoleRead("host seek to "+ QString::number(msg.getTimeAt()/1000)+"sec");
                 }else{
@@ -194,6 +194,7 @@ void VideoController::parseMessage(Message &msg)
             }
         break;
         case HEART_BEAT:
+            estimateDelay(msg.getTimeStamp());
             if (currentSeq <= msg.getSeq()){
              //   qDebug() << "client receive heart beat";
                 syncState(msg);
@@ -280,10 +281,29 @@ void VideoController::parseMessage(Message &msg)
 
     }
 }
+void VideoController::estimateDelay(qint64 hostTimeStamp){
+
+      double st = QDateTime::currentMSecsSinceEpoch()-hostTimeStamp;
+        qDebug() << "receive delay" <<st;
+        double tempD = delay;
+        delay = (1-alpha)*delay + alpha *st;
+        double diff = abs(st - tempD);
+        qDebug() <<"delay diff"<< diff;
+         prevDev = (1-beta) *prevDev + beta* diff;
+        timeout =  prevDev ;
+         qDebug()<< "timeout " << prevDev;
+        if(timeout  <minDelay){
+            timeout = minDelay;
+        }
+
+
+}
+
+
 void VideoController::syncState(const Message &msg, bool changeDelay){
     //check if sync
 
-    qint64 currentDelay = abs(player->position()-msg.getTimeAt());
+
     if (currentId != msg.getCurrentId()){
         qDebug() <<"sync current";
         emit consoleRead("sync video with host");
@@ -296,9 +316,9 @@ void VideoController::syncState(const Message &msg, bool changeDelay){
         return;
     }
 
+    qint64 videoDiff = abs(player->position()-msg.getTimeAt());
 
-
-    if (currentDelay > timeout && playable()){
+    if (videoDiff> timeout && playable()){
 
         qDebug() <<"sync time" << msg.getTimeAt() << " " << player->position();
          if (msg.getTimeAt() > player->duration()){
@@ -310,7 +330,7 @@ void VideoController::syncState(const Message &msg, bool changeDelay){
              return;
          }
          emit consoleRead("sync time(change delay timeout:"+QString::number(timeout)+")");
-        _seekTo(msg.getTimeAt());
+        _seekTo(msg.getTimeAt()+delay);
     }
     if (player->state()== QMediaPlayer::PlayingState && msg.getCurrentState()!=QMediaPlayer::PlayingState){
         qDebug() <<"sync state";
@@ -327,16 +347,6 @@ void VideoController::syncState(const Message &msg, bool changeDelay){
 
 
 
-    if (changeDelay&&!firstLoad){
-        qDebug()<< "currentDelay" << currentDelay;
-        double tempD = delay;
-        delay = (1-alpha)*delay + alpha *currentDelay;
-        double diff = abs(currentDelay - tempD);
-        qDebug() << diff;
-         prevDev = (1-beta) *prevDev + beta* diff;
-         qDebug()<< "dev " << prevDev;
-        timeout = 4* prevDev  + delay;
-     }
     qDebug() <<"current timeout"<< timeout;
     firstLoad=false;
 
@@ -383,7 +393,7 @@ void VideoController::heartBeat()
     UserList ls = userMap.values();
     msg.setUsers(ls);
     emit updateUserList(ls);
-    msg.setTimeStamp(QDateTime::currentMSecsSinceEpoch());
+
     netController->broadcastToClients(msg);
 }
 
@@ -991,6 +1001,7 @@ void VideoController::initMessage(Message &msg)
       msg.setSeq(currentSeq);
       msg.setTimeAt(player->position());
       msg.setCurrentState(player->state());
+      msg.setTimeStamp(QDateTime::currentMSecsSinceEpoch());
 }
 void VideoController::suggestBuffer(){
     if (netController->isHost()){
