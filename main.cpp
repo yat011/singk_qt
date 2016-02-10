@@ -13,8 +13,13 @@ int main(int argc, char *argv[])
     qRegisterMetaTypeStreamOperators<User>("User");
     qRegisterMetaType<QList<User> >("UserList");
     qRegisterMetaTypeStreamOperators<QList<User> > ("UserList");
+    qInstallMessageHandler(0);
 
+    if(argc >1 &&QString(argv[1])=="debug"){
 
+    }else{
+        FreeConsole();
+    }
    // QQmlApplicationEngine engine;
  //   engine.load(QUrl(QStringLiteral("qrc:/video.qml")));
 

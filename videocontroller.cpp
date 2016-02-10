@@ -293,8 +293,8 @@ void VideoController::estimateDelay(qint64 hostTimeStamp){
         double diff = abs(st - tempD);
         qDebug() <<"delay diff"<< diff;
          prevDev = (1-beta) *prevDev + beta* diff;
-        timeout =  3 *prevDev ;
-         qDebug()<< "timeout " << 3 * prevDev;
+        timeout =  4 *prevDev ;
+         qDebug()<< "timeout " << 4 * prevDev;
         if(timeout  <minDelay){
             timeout = minDelay;
         }

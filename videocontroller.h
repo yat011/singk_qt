@@ -69,7 +69,7 @@ private:
     void suggestPause(int clientId=-1);
     void initMessage(Message &msg);
     const int beatInterval = 2000;
-    double minDelay = 100;
+    double minDelay = 200;
     double delay = 100;
     double prevDev = 0;
     double beta = 0.25;
