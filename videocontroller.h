@@ -75,6 +75,8 @@ private:
     double beta = 0.25;
     double alpha =0.125;
     double timeout= 100;
+    double prevVideoDiff=0;
+    int prevVideoSeq = -1;
     bool firstLoad =true;
 
     int waitTime = 4000;
