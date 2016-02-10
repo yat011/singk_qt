@@ -293,8 +293,8 @@ void VideoController::estimateDelay(qint64 hostTimeStamp){
         double diff = abs(st - tempD);
         qDebug() <<"delay diff"<< diff;
          prevDev = (1-beta) *prevDev + beta* diff;
-        timeout =  prevDev ;
-         qDebug()<< "timeout " << prevDev;
+        timeout =  3 *prevDev ;
+         qDebug()<< "timeout " << 3 * prevDev;
         if(timeout  <minDelay){
             timeout = minDelay;
         }
@@ -327,8 +327,19 @@ void VideoController::syncState(const Message &msg, bool changeDelay){
     }else{
         videoDiff = player->position()-msg.getTimeAt();
     }
+    if (!firstLoad&&prevVideoSeq == msg.getSeq()){
+        prevVideoDiff = prevVideoDiff*(1-alpha) +alpha* videoDiff;
+        qDebug() <<"prevVideo diff" << prevVideoDiff;
+        prevVideoSeq=msg.getSeq();
+    }else{
+        prevVideoDiff = videoDiff;
+        qDebug() <<"prevVideoSeq prevVideo diff" << prevVideoDiff;
+        prevVideoSeq=msg.getSeq();
+    }
+
+    //qDebug() <<"prevVideo diff" << prevVideoDiff;
     qDebug() <<"video diff" << videoDiff;
-    if (abs(videoDiff)> timeout && playable()){
+    if (abs(prevVideoDiff)> timeout && playable()){
 
         qDebug() <<"video diff" << videoDiff;
          if (msg.getTimeAt() > player->duration()){
@@ -340,7 +351,10 @@ void VideoController::syncState(const Message &msg, bool changeDelay){
              return;
          }
          emit consoleRead("sync time(change delay timeout:"+QString::number(timeout)+")");
-        _seekTo(player->position()-videoDiff);
+        _seekTo(player->position() - prevVideoDiff);
+
+        prevVideoDiff = 0;
+
     }
     if (player->state()== QMediaPlayer::PlayingState && msg.getCurrentState()!=QMediaPlayer::PlayingState){
         qDebug() <<"sync state";
@@ -966,6 +980,7 @@ void VideoController::_pause()
 void VideoController::_seekTo(qint64 pos)
 {
 
+    firstLoad = true;
        player->seekTo(pos);
 
 }
