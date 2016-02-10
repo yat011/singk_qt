@@ -69,8 +69,12 @@ private:
     void suggestPause(int clientId=-1);
     void initMessage(Message &msg);
     const int beatInterval = 2000;
-    qint64 minDelay = 100;
-    qint64 delay = 300;
+    double minDelay = 100;
+    double delay = 100;
+    double prevDev = 0;
+    double beta = 0.25;
+    double alpha =0.125;
+    double timeout= 100;
     bool firstLoad =true;
 
     int waitTime = 4000;
