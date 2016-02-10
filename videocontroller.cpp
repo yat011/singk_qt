@@ -86,7 +86,7 @@ VideoController::VideoController(QQuickView *view, QObject *parent) : QObject(pa
     connect(netController,&NetworkController::onlineSig,[=](){
        //reset
         delay = minDelay;
-        firstLoad =true
+        firstLoad =true;
     });
 
 }
@@ -453,6 +453,11 @@ void VideoController::loadVideo(int id)
     }else{
         //download;
         qDebug() <<"video "<<links[id].first<<" not exist";
+        if (links[id].first==""){
+            emit consoleRead("current video has no title, try to load next video");
+            nextVid = -1;
+            nextVideo();
+        }
          downloadVideo(links[id].second);
 
     }
@@ -942,7 +947,7 @@ void VideoController::pickNextVideo()
             nextVid = -1;
         }else{
             nextVid = localKeys[0];
-            qDebug() << "pick " << nextVid;
+            qDebug() << "pick last" << nextVid;
             emit consoleRead("next video:"+links[nextVid].first);
         }
          return;
@@ -952,6 +957,7 @@ void VideoController::pickNextVideo()
         return;
     }
     if (!qp->random()){
+        qDebug() <<"not random";
         for (int k : localKeys){
             if (localKeys[k]!= currentId){
                 nextVid= localKeys[k];
@@ -960,6 +966,7 @@ void VideoController::pickNextVideo()
         }
     }else{
           int i = rand()%localKeys.count();
+        qDebug()<<"random " <<i ;
         if (localKeys[i] == currentId){
             i = (i+1)%localKeys.count();
         }
