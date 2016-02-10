@@ -316,11 +316,16 @@ void VideoController::syncState(const Message &msg, bool changeDelay){
         return;
     }
 
-    qint64 videoDiff = abs(player->position()-msg.getTimeAt());
+    qint64 videoDiff =0;
+    if (player->state()== QMediaPlayer::PlayingState){
+         videoDiff = player->position()-msg.getTimeAt()-delay;
+    }else{
+        videoDiff = player->position()-msg.getTimeAt();
+    }
+    qDebug() <<"video diff" << videoDiff;
+    if (abs(videoDiff)> timeout && playable()){
 
-    if (videoDiff> timeout && playable()){
-
-        qDebug() <<"sync time" << msg.getTimeAt() << " " << player->position();
+        qDebug() <<"video diff" << videoDiff;
          if (msg.getTimeAt() > player->duration()){
              //unknown error duration 0 -> recover
              qDebug()<<"try reload ";
@@ -330,7 +335,7 @@ void VideoController::syncState(const Message &msg, bool changeDelay){
              return;
          }
          emit consoleRead("sync time(change delay timeout:"+QString::number(timeout)+")");
-        _seekTo(msg.getTimeAt()+delay);
+        _seekTo(player->position()-videoDiff);
     }
     if (player->state()== QMediaPlayer::PlayingState && msg.getCurrentState()!=QMediaPlayer::PlayingState){
         qDebug() <<"sync state";
