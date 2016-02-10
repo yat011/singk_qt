@@ -85,8 +85,9 @@ VideoController::VideoController(QQuickView *view, QObject *parent) : QObject(pa
 
     connect(netController,&NetworkController::onlineSig,[=](){
        //reset
-        delay = minDelay;
+        delay = 0;
         firstLoad =true;
+        userMap.clear();
     });
 
 }
@@ -283,7 +284,9 @@ void VideoController::parseMessage(Message &msg)
 }
 void VideoController::estimateDelay(qint64 hostTimeStamp){
 
-      double st = QDateTime::currentMSecsSinceEpoch()-hostTimeStamp;
+    if (userMap.contains(netController->getClientId())){
+        double dp= double(userMap[netController->getClientId()].ping)/2.0;
+        double st = dp;
         qDebug() << "receive delay" <<st;
         double tempD = delay;
         delay = (1-alpha)*delay + alpha *st;
@@ -295,7 +298,9 @@ void VideoController::estimateDelay(qint64 hostTimeStamp){
         if(timeout  <minDelay){
             timeout = minDelay;
         }
-
+    }else{
+        qDebug() <<"no User data";
+    }
 
 }
 
@@ -592,6 +597,9 @@ void VideoController::replyHeartBeat(Message &msg)
 
 void VideoController::updateUserList(UserList ls)
 {
+    for(User user :ls){
+        userMap[user.id]=user;
+    }
     emit userListUpdated(ls);
 }
 
