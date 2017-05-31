@@ -5,7 +5,6 @@ from collections import defaultdict
 import json
 import logging
 import re
-import sys
 import warnings
 from .compat import urlopen, urlparse, parse_qs, unquote
 from .exceptions import MultipleObjectsReturned, PytubeError, CipherError, \
@@ -13,8 +12,6 @@ from .exceptions import MultipleObjectsReturned, PytubeError, CipherError, \
 from .jsinterp import JSInterpreter
 from .models import Video
 from .utils import safe_filename
-
-
 
 log = logging.getLogger(__name__)
 
@@ -38,6 +35,31 @@ QUALITY_PROFILES = {
     83: ("mp4", "240p", "H.264", "3D", "0.5", "AAC", "96"),
     84: ("mp4", "720p", "H.264", "3D", "2-2.9", "AAC", "152"),
     85: ("mp4", "1080p", "H.264", "3D", "2-2.9", "AAC", "152"),
+
+    160: ("mp4", "144p", "H.264", "Main", "0.1", "", ""),
+    133: ("mp4", "240p", "H.264", "Main", "0.2-0.3", "", ""),
+    134: ("mp4", "360p", "H.264", "Main", "0.3-0.4", "", ""),
+    135: ("mp4", "480p", "H.264", "Main", "0.5-1", "", ""),
+    136: ("mp4", "720p", "H.264", "Main", "1-1.5", "", ""),
+    298: ("mp4", "720p HFR", "H.264", "Main", "3-3.5", "", ""),
+
+    137: ("mp4", "1080p", "H.264", "High", "2.5-3", "", ""),
+    299: ("mp4", "1080p HFR", "H.264", "High", "5.5", "", ""),
+    264: ("mp4", "2160p-2304p", "H.264", "High", "12.5-16", "", ""),
+    266: ("mp4", "2160p-4320p", "H.264", "High", "13.5-25", "", ""),
+
+    242: ("webm", "240p", "vp9", "n/a", "0.1-0.2", "", ""),
+    243: ("webm", "360p", "vp9", "n/a", "0.25", "", ""),
+    244: ("webm", "480p", "vp9", "n/a", "0.5", "", ""),
+    247: ("webm", "720p", "vp9", "n/a", "0.7-0.8", "", ""),
+    248: ("webm", "1080p", "vp9", "n/a", "1.5", "", ""),
+    271: ("webm", "1440p", "vp9", "n/a", "9", "", ""),
+    278: ("webm", "144p 15 fps", "vp9", "n/a", "0.08", "", ""),
+    302: ("webm", "720p HFR", "vp9", "n/a", "2.5", "", ""),
+    303: ("webm", "1080p HFR", "vp9", "n/a", "5", "", ""),
+    308: ("webm", "1440p HFR", "vp9", "n/a", "10", "", ""),
+    313: ("webm", "2160p", "vp9", "n/a", "13-15", "", ""),
+    315: ("webm", "2160p HFR", "vp9", "n/a", "20-25", "", "")
 }
 
 # The keys corresponding to the quality/codec map above.
@@ -55,7 +77,7 @@ QUALITY_PROFILE_KEYS = (
 class YouTube(object):
     """Class representation of a single instance of a YouTube session.
     """
-    def __init__(self, url=None, titleOnly=None,listTitle=None):
+    def __init__(self, url=None):
         """Initializes YouTube API wrapper.
 
         :param str url:
@@ -64,8 +86,6 @@ class YouTube(object):
         self._filename = None
         self._video_url = None
         self._js_cache = None
-        self.titleOnly = titleOnly
-        self.listTitle = listTitle
         self._videos = []
         if url:
             self.from_url(url)
@@ -167,15 +187,16 @@ class YouTube(object):
 
         # Rewrite and add the url to the javascript file, we'll need to fetch
         # this if YouTube doesn't provide us with the signature.
-        js_url = "http:" + video_data.get("assets", {}).get("js")
+        js_partial_url = video_data.get("assets", {}).get("js")
+        if js_partial_url.startswith('//'):
+            js_url = 'http:' + js_partial_url
+        elif js_partial_url.startswith('/'):
+            js_url = 'https://youtube.com' + js_partial_url
 
         # Just make these easily accessible as variables.
         stream_map = video_data.get("args", {}).get("stream_map")
-       
         video_urls = stream_map.get("url")
-        print("{title:"+self.title.encode('utf-8')+"}");
-        if (self.titleOnly == "1"):
-            sys.exit(1)
+
         # For each video url, identify the quality profile and add it to list
         # of available videos.
         for i, url in enumerate(video_urls):
@@ -196,8 +217,6 @@ class YouTube(object):
                           "cipher.")
                 signature = self._get_cipher(stream_map["s"][i], js_url)
                 url = "{0}&signature={1}".format(url, signature)
-
-
             self._add_video(url, self.filename, **quality_profile)
         # Clear the cached js. Make sure to keep this at the end of
         # `from_url()` so we can mock inject the js in unit tests.
@@ -280,10 +299,8 @@ class YouTube(object):
 
         # Here we decode the stream map and bundle it into the json object. We
         # do this just so we just can return one object for the video data.
-        #print(json_object)
         encoded_stream_map = json_object.get("args", {}).get(
             "url_encoded_fmt_stream_map")
-
         json_object["args"]["stream_map"] = self._parse_stream_map(
             encoded_stream_map)
         return json_object
@@ -323,16 +340,7 @@ class YouTube(object):
             json_start_pattern = "ytplayer.config = "
         else:
             json_start_pattern = bytes("ytplayer.config = ", "utf-8")
-
-
         pattern_idx = html.find(json_start_pattern)
-
-        if self.listTitle !=None:
-            itr=     re.finditer('<li class="yt-uix-scroller-scroll-unit.*?data-video-title="(.*?)".*?<a href="(.*?)&amp.*?</li>',html,re.DOTALL)
-            for m in itr:       
-                print("{list:"+m.group(1)+":::https://www.youtube.com"+m.group(2)+"}")
-            sys.exit(0)
-
         # In case video is unable to play
         if(pattern_idx == -1):
             raise PytubeError("Unable to find start pattern.")
@@ -378,7 +386,7 @@ class YouTube(object):
         :param str url:
             The url of the javascript file.
         """
-        reg_exp = re.compile(r'\.sig\|\|([a-zA-Z0-9$]+)\(')
+        reg_exp = re.compile(r'"signature",\s?([a-zA-Z0-9$]+)\(')
         # Cache the js since `_get_cipher()` will be called for each video.
         if not self._js_cache:
             response = urlopen(url)
@@ -438,7 +446,6 @@ class YouTube(object):
         :param kwargs:
             Additional properties to set for the video object.
         """
-       
         video = Video(url, filename, **kwargs)
         self._videos.append(video)
         self._videos.sort()
