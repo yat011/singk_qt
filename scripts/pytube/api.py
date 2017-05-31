@@ -196,6 +196,9 @@ class YouTube(object):
         # Just make these easily accessible as variables.
         stream_map = video_data.get("args", {}).get("stream_map")
         video_urls = stream_map.get("url")
+        print("{title:" + self.title.encode('utf-8') + "}")
+
+
 
         # For each video url, identify the quality profile and add it to list
         # of available videos.

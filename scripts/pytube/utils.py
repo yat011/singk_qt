@@ -68,10 +68,11 @@ def print_status(progress, file_size, start):
     """
 
     percent_done = int(progress) * 100. / file_size
-    done = int(50 * progress / int(file_size))
-    dt = (clock() - start)
-    if dt > 0:
-        stdout.write("\r  [%s%s][%3.2f%%] %s at %s/s " %
-                     ('=' * done, ' ' * (50 - done), percent_done,
-                      sizeof(file_size), sizeof(progress // dt)))
+    stdout.write("{progress:" + str(percent_done) + "}\n")
+    # done = int(50 * progress / int(file_size))
+    # dt = (clock() - start)
+    # if dt > 0:
+    #     stdout.write("\r  [%s%s][%3.2f%%] %s at %s/s " %
+    #                  ('=' * done, ' ' * (50 - done), percent_done,
+    #                   sizeof(file_size), sizeof(progress // dt)))
     stdout.flush()
