@@ -1,5 +1,5 @@
 # singk_qt
-LAN multi-person synchronized singk desktop app. using qt5.  video from youtube
+LAN multi-person synchronized youtube video desktop player. using qt5.  video from youtube
 
 <h1>library:</h1>
 qt5
